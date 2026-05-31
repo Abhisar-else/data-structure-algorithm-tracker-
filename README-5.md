@@ -175,3 +175,9 @@ The step recorder is data-structure agnostic — just change the `array` field i
 - **Emscripten interop**: `ccall`, `cwrap`, manual heap allocation (`_malloc`/`_free`), string marshalling
 - **Embedded databases**: SQLite running inside a compiled binary inside a browser tab
 - **Algorithm analysis**: Comparisons vs swaps vs total steps across algorithms become concrete numbers you generated yourself
+
+
+#to run 
+ emsdk\emsdk_env.bat                                                              
+ 
+emcc src/engine.cpp -o public/engine.js -sWASM=1  -sALLOW_MEMORY_GROWTH=1 -sFORCE_FILESYSTEM=1 -sMODULARIZE=1 -sEXPORT_NAME="AlgoEngineWASM" -sUSE_SQLITE3=1 --bind -lidbfs.js -o2 -std=c++17                                                                                         

@@ -1,24 +1,40 @@
 /**
  * Algorithm Flight Recorder — C++ Engine
- * Compiles to WebAssembly via Emscripten.
+ * Compiles to WebAssembly via Emscripten + Embind.
  *
- * Build command (requires Emscripten SDK):
- *   emcc engine.cpp -o ../public/engine.js \
- *     -s WASM=1 \
- *     -s EXPORTED_FUNCTIONS='["_run_algorithm","_get_steps_json","_get_history_json","_free_result","_malloc","_free"]' \
- *     -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap","UTF8ToString","stringToUTF8","lengthBytesUTF8"]' \
- *     -s ALLOW_MEMORY_GROWTH=1 \
- *     -s MODULARIZE=1 \
- *     -s EXPORT_NAME="AlgoEngine" \
- *     --embed-file recorder.db \
- *     -lidbfs.js \
- *     -O2
+ * ── Build command ────────────────────────────────────────────────────────────
+ *   emcc engine.cpp -o ../public/engine.js     \
+ *     -sWASM=1                                  \
+ *     -sALLOW_MEMORY_GROWTH=1                   \
+ *     -sFORCE_FILESYSTEM=1                      \
+ *     -sMODULARIZE=1                            \
+ *     -sEXPORT_NAME="AlgoEngineWASM"            \
+ *     -sUSE_SQLITE3=1                           \
+ *     --bind                                    \  ← enables EMSCRIPTEN_BINDINGS
+ *     -lidbfs.js                                \
+ *     -O2                                       \
+ *     -std=c++17
  *
- * SQLite is bundled via Emscripten's port:
- *   Add flag: -sUSE_SQLITE3
+ * ── Why EMSCRIPTEN_BINDINGS instead of extern "C" ────────────────────────────
+ *   Embind (--bind) exposes C++ functions as proper JS methods with typed
+ *   argument checking. extern "C" + ccall requires manual string marshalling.
+ *   The spec explicitly requires EMSCRIPTEN_BINDINGS.
+ *
+ * ── Log Contract (spec-compliant pipe-delimited format) ───────────────────────
+ *   Every step serialises as:   ValueArray|PointerA|PointerB|Status;
+ *   e.g.:  5,3,8,1|0|1|compare;3,5,8,1|0|1|swap;
+ *   JS splits on ';', then '|' to get [arrayCSV, a, b, phase].
+ *   get_steps_pipe() returns this format; get_steps_json() returns JSON.
+ *   Both are available — JS bridge uses pipe-delimited as the primary format
+ *   per the spec, with JSON as a rich fallback.
+ *
+ * ── SQLite table (spec-compliant) ────────────────────────────────────────────
+ *   Table: Performance_Logs
+ *   Columns: Algorithm_Name | Dataset_Size | Total_Steps_Computed
+ *   Extended: Comparisons_Count | Swaps_Count | Run_Timestamp
  */
 
-#include <emscripten/emscripten.h>
+#include <emscripten/bind.h>      // ← Embind — required for EMSCRIPTEN_BINDINGS
 #include <sqlite3.h>
 #include <vector>
 #include <string>
@@ -28,120 +44,278 @@
 #include <cstdlib>
 #include <functional>
 
-// ─── Data Structures ──────────────────────────────────────────────────────────
+using namespace emscripten;
+
+// ─── Step (extended with lineNumber for source-code highlighting) ─────────────
 
 struct Step {
-    std::vector<int> array;   // full array snapshot at this moment
-    int  indexA   = -1;       // primary active index (red highlight)
-    int  indexB   = -1;       // secondary active index (yellow highlight)
+    std::vector<int> array;   // full array snapshot
+    int  indexA     = -1;     // primary active index   (red)
+    int  indexB     = -1;     // secondary active index (yellow)
     std::string action;       // human-readable description
     std::string phase;        // "compare" | "swap" | "pivot" | "merge" | "done"
+    int  lineNumber = -1;     // source line to highlight in the code panel (-1 = none)
 };
 
-static std::vector<Step> g_steps;
-static sqlite3*           g_db = nullptr;
+// ─── StepRecorder — owns the step timeline and JSON/pipe serialisation ─────────
+//
+// Replaces the old global g_steps vector + free functions.
+// The DB hook is injected via a callback so algorithms stay DB-agnostic.
+
+class StepRecorder {
+public:
+    using DBHook = std::function<void(const std::string&, int, int, int, int)>;
+
+    explicit StepRecorder(DBHook hook = nullptr) : db_hook_(std::move(hook)) {}
+
+    void clear() { steps_.clear(); }
+
+    void record(const std::vector<int>& arr, int a, int b,
+                const std::string& action, const std::string& phase,
+                int lineNumber = -1)
+    {
+        steps_.push_back({arr, a, b, action, phase, lineNumber});
+    }
+
+    int  size()  const { return static_cast<int>(steps_.size()); }
+    bool empty() const { return steps_.empty(); }
+
+    const Step& at(int i) const { return steps_.at(i); }
+
+    int count_phase(const std::string& phase) const {
+        int n = 0;
+        for (auto& s : steps_) if (s.phase == phase) ++n;
+        return n;
+    }
+
+    // Flush performance metrics to SQLite via the injected hook
+    void flush_db(const std::string& algo_name, int dataset_size) {
+        if (db_hook_) {
+            db_hook_(algo_name, dataset_size, size(),
+                     count_phase("compare"), count_phase("swap"));
+        }
+    }
+
+    // ── Serialisers ──────────────────────────────────────────────────────────
+
+    std::string to_json() const {
+        std::ostringstream oss;
+        oss << "[";
+        for (int i = 0; i < size(); ++i) {
+            const Step& s = steps_[i];
+            if (i) oss << ",";
+            oss << "{"
+                << "\"array\":"      << array_to_json(s.array)   << ","
+                << "\"a\":"          << s.indexA                  << ","
+                << "\"b\":"          << s.indexB                  << ","
+                << "\"action\":\""   << escape_json(s.action)    << "\","
+                << "\"phase\":\""    << escape_json(s.phase)     << "\","
+                << "\"ln\":"         << s.lineNumber              // line number for highlight
+                << "}";
+        }
+        oss << "]";
+        return oss.str();
+    }
+
+    // Spec-required pipe-delimited: ValueArray|PointerA|PointerB|Status|LineNumber;
+    std::string to_pipe() const {
+        std::ostringstream oss;
+        for (const Step& s : steps_) {
+            for (size_t i = 0; i < s.array.size(); ++i) {
+                if (i) oss << ",";
+                oss << s.array[i];
+            }
+            oss << "|" << s.indexA
+                << "|" << s.indexB
+                << "|" << s.phase
+                << "|" << s.lineNumber
+                << ";";
+        }
+        return oss.str();
+    }
+
+private:
+    std::vector<Step> steps_;
+    DBHook            db_hook_;
+
+    static std::string array_to_json(const std::vector<int>& arr) {
+        std::ostringstream oss;
+        oss << "[";
+        for (size_t i = 0; i < arr.size(); ++i) { if (i) oss << ","; oss << arr[i]; }
+        oss << "]";
+        return oss.str();
+    }
+
+    static std::string escape_json(const std::string& s) {
+        std::string out;
+        for (char c : s) {
+            if      (c == '"')  out += "\\\"";
+            else if (c == '\\') out += "\\\\";
+            else                out += c;
+        }
+        return out;
+    }
+};
+
+// ─── Abstract Algorithm base class ────────────────────────────────────────────
+//
+// Every concrete algorithm holds a reference to a StepRecorder.
+// sort() is the single point of polymorphic dispatch.
+
+class Algorithm {
+public:
+    explicit Algorithm(StepRecorder& recorder) : recorder_(recorder) {}
+    virtual ~Algorithm() = default;
+
+    virtual void sort(std::vector<int>& arr) = 0;
+
+    // Convenience — forwards to the recorder with the algorithm's line map
+    void record(const std::vector<int>& arr, int a, int b,
+                const std::string& action, const std::string& phase,
+                int lineNumber = -1)
+    {
+        recorder_.record(arr, a, b, action, phase, lineNumber);
+    }
+
+protected:
+    StepRecorder& recorder_;
+};
+
+// ─── BubbleSort : Algorithm ───────────────────────────────────────────────────
+//
+// Bubble Sort source snippet (shown in the code panel, 1-indexed):
+//
+//  1  void bubbleSort(int arr[], int n) {
+//  2    for (int i = 0; i < n-1; i++) {
+//  3      bool swapped = false;
+//  4      for (int j = 0; j < n-i-1; j++) {
+//  5        if (arr[j] > arr[j+1]) {
+//  6          swap(arr[j], arr[j+1]);
+//  7          swapped = true;
+//  8        }
+//  9      }
+// 10      if (!swapped) break;
+// 11    }
+// 12  }
+//
+// Each record() call tags the line that is actively executing.
+
+class BubbleSort : public Algorithm {
+public:
+    explicit BubbleSort(StepRecorder& recorder) : Algorithm(recorder) {}
+
+    void sort(std::vector<int>& arr) override {
+        const int n = static_cast<int>(arr.size());
+
+        record(arr, -1, -1, "Starting Bubble Sort", "pivot", 1);          // line 1: fn entry
+
+        for (int i = 0; i < n - 1; ++i) {
+            record(arr, -1, -1,
+                   "Outer pass " + std::to_string(i) + " — bubble ceiling at " + std::to_string(n-1-i),
+                   "pivot", 2);                                             // line 2: outer for
+
+            bool swapped = false;
+            record(arr, -1, -1, "swapped = false", "pivot", 3);           // line 3
+
+            for (int j = 0; j < n - i - 1; ++j) {
+                record(arr, j, j + 1,
+                       "Comparing arr[" + std::to_string(j) + "]=" +
+                       std::to_string(arr[j]) + " vs arr[" + std::to_string(j+1) + "]=" +
+                       std::to_string(arr[j+1]),
+                       "compare", 4);                                       // line 4: inner for / compare
+
+                record(arr, j, j + 1,
+                       "Is arr[" + std::to_string(j) + "] > arr[" + std::to_string(j+1) + "] ?",
+                       "compare", 5);                                       // line 5: if condition
+
+                if (arr[j] > arr[j + 1]) {
+                    std::swap(arr[j], arr[j + 1]);
+                    record(arr, j, j + 1,
+                           "Swapped → " + std::to_string(arr[j]) + " ↔ " + std::to_string(arr[j+1]),
+                           "swap", 6);                                      // line 6: swap()
+
+                    swapped = true;
+                    record(arr, j, j + 1, "swapped = true", "swap", 7);   // line 7
+                }
+            }
+
+            record(arr, -1, -1,
+                   "Inner loop done — swapped=" + std::string(swapped ? "true" : "false"),
+                   "pivot", 10);                                            // line 10: early-exit check
+
+            if (!swapped) {
+                record(arr, -1, -1, "No swaps — array is sorted, breaking early", "done", 10);
+                break;
+            }
+        }
+
+        record(arr, -1, -1, "Array is fully sorted!", "done", 12);        // line 12: fn exit
+    }
+};
+
+// ─── Global recorder instance (replaces g_steps) ─────────────────────────────
+//
+// The recorder is constructed once and reused across calls.
+// The DB hook is wired in lazily on first run_algorithm call.
+
+static StepRecorder* g_recorder = nullptr;
+static sqlite3*      g_db       = nullptr;
 
 // ─── SQLite Helpers ───────────────────────────────────────────────────────────
 
 static void db_init() {
     if (g_db) return;
-    sqlite3_open(":memory:", &g_db);
+    // Use IDBFS-mounted path when running in browser (FORCE_FILESYSTEM=1 makes
+    // this work); falls back gracefully to :memory: if mount isn't ready yet.
+    int rc = sqlite3_open("/data/performance.db", &g_db);
+    if (rc != SQLITE_OK) sqlite3_open(":memory:", &g_db);
+
+    // ── Spec-compliant table: Performance_Logs ────────────────────────────────
+    //    Required columns: Algorithm_Name, Dataset_Size, Total_Steps_Computed
+    //    Extended columns: Comparisons_Count, Swaps_Count, Run_Timestamp
     const char* sql =
-        "CREATE TABLE IF NOT EXISTS history ("
-        "  id        INTEGER PRIMARY KEY AUTOINCREMENT,"
-        "  timestamp TEXT DEFAULT (datetime('now')),"
-        "  algorithm TEXT,"
-        "  input_size INTEGER,"
-        "  total_steps INTEGER,"
-        "  comparisons INTEGER,"
-        "  swaps       INTEGER"
+        "CREATE TABLE IF NOT EXISTS Performance_Logs ("
+        "  id                  INTEGER PRIMARY KEY AUTOINCREMENT,"
+        "  Run_Timestamp       TEXT DEFAULT (datetime('now')),"
+        "  Algorithm_Name      TEXT NOT NULL,"
+        "  Dataset_Size        INTEGER NOT NULL,"
+        "  Total_Steps_Computed INTEGER NOT NULL,"
+        "  Comparisons_Count   INTEGER NOT NULL,"
+        "  Swaps_Count         INTEGER NOT NULL"
         ");";
     sqlite3_exec(g_db, sql, nullptr, nullptr, nullptr);
 }
 
 static void db_log(const std::string& algo, int size, int steps, int cmps, int swaps) {
     db_init();
-    std::string sql =
-        "INSERT INTO history (algorithm, input_size, total_steps, comparisons, swaps) "
-        "VALUES ('" + algo + "'," +
-        std::to_string(size)  + "," +
-        std::to_string(steps) + "," +
-        std::to_string(cmps)  + "," +
-        std::to_string(swaps) + ");";
-    sqlite3_exec(g_db, sql.c_str(), nullptr, nullptr, nullptr);
-}
-
-// ─── JSON Helpers ─────────────────────────────────────────────────────────────
-
-static std::string array_to_json(const std::vector<int>& arr) {
-    std::ostringstream oss;
-    oss << "[";
-    for (size_t i = 0; i < arr.size(); ++i) {
-        if (i) oss << ",";
-        oss << arr[i];
+    // Parameterised insert — avoids SQL injection from algo name strings
+    sqlite3_stmt* stmt = nullptr;
+    const char* sql =
+        "INSERT INTO Performance_Logs "
+        "(Algorithm_Name, Dataset_Size, Total_Steps_Computed, Comparisons_Count, Swaps_Count) "
+        "VALUES (?, ?, ?, ?, ?);";
+    if (sqlite3_prepare_v2(g_db, sql, -1, &stmt, nullptr) == SQLITE_OK) {
+        sqlite3_bind_text(stmt, 1, algo.c_str(), -1, SQLITE_STATIC);
+        sqlite3_bind_int (stmt, 2, size);
+        sqlite3_bind_int (stmt, 3, steps);
+        sqlite3_bind_int (stmt, 4, cmps);
+        sqlite3_bind_int (stmt, 5, swaps);
+        sqlite3_step(stmt);
+        sqlite3_finalize(stmt);
     }
-    oss << "]";
-    return oss.str();
 }
 
-static std::string escape_json(const std::string& s) {
-    std::string out;
-    for (char c : s) {
-        if (c == '"')  out += "\\\"";
-        else if (c == '\\') out += "\\\\";
-        else           out += c;
-    }
-    return out;
-}
-
-static std::string steps_to_json() {
-    std::ostringstream oss;
-    oss << "[";
-    for (size_t i = 0; i < g_steps.size(); ++i) {
-        const Step& s = g_steps[i];
-        if (i) oss << ",";
-        oss << "{"
-            << "\"array\":"  << array_to_json(s.array)  << ","
-            << "\"a\":"      << s.indexA                << ","
-            << "\"b\":"      << s.indexB                << ","
-            << "\"action\":\"" << escape_json(s.action) << "\","
-            << "\"phase\":\"" << escape_json(s.phase)   << "\""
-            << "}";
-    }
-    oss << "]";
-    return oss.str();
-}
-
-// ─── Step Recording ───────────────────────────────────────────────────────────
+// ─── Step Recording (procedural algorithms use this helper) ──────────────────
+// BubbleSort now uses the OOP path. All other algorithms still call this.
 
 static void record(const std::vector<int>& arr, int a, int b,
-                   const std::string& action, const std::string& phase) {
-    g_steps.push_back({arr, a, b, action, phase});
+                   const std::string& action, const std::string& phase,
+                   int lineNumber = -1)
+{
+    if (g_recorder) g_recorder->record(arr, a, b, action, phase, lineNumber);
 }
 
-// ─── Algorithms ───────────────────────────────────────────────────────────────
-
-// Bubble Sort ─────────────────────────────────────────────────────────────────
-static void bubble_sort(std::vector<int> arr) {
-    int n = arr.size();
-    for (int i = 0; i < n - 1; ++i) {
-        bool swapped = false;
-        for (int j = 0; j < n - i - 1; ++j) {
-            record(arr, j, j+1,
-                   "Comparing [" + std::to_string(arr[j]) + "] vs [" + std::to_string(arr[j+1]) + "]",
-                   "compare");
-            if (arr[j] > arr[j+1]) {
-                std::swap(arr[j], arr[j+1]);
-                swapped = true;
-                record(arr, j, j+1,
-                       "Swapped → " + std::to_string(arr[j]) + " ↔ " + std::to_string(arr[j+1]),
-                       "swap");
-            }
-        }
-        if (!swapped) break;
-    }
-    record(arr, -1, -1, "Array is sorted!", "done");
-}
+// ─── Algorithms (procedural — Selection, Insertion, Merge, Quick, Binary) ────
 
 // Selection Sort ──────────────────────────────────────────────────────────────
 static void selection_sort(std::vector<int> arr) {
@@ -284,108 +458,121 @@ static void binary_search(std::vector<int> arr, int target) {
 // ─── Count helpers ────────────────────────────────────────────────────────────
 
 static int count_phase(const std::string& phase) {
-    int n = 0;
-    for (auto& s : g_steps) if (s.phase == phase) ++n;
-    return n;
+    return g_recorder ? g_recorder->count_phase(phase) : 0;
 }
 
-// ─── Exported API ─────────────────────────────────────────────────────────────
+// ─── Exported API — Embind (EMSCRIPTEN_BINDINGS) ──────────────────────────────
 
-extern "C" {
+static int run_algorithm_impl(int algo_id, const std::string& data_json, int extra) {
 
-/**
- * run_algorithm(algo_id, data_json, extra)
- *   algo_id: 0=Bubble, 1=Selection, 2=Insertion, 3=Merge, 4=Quick, 5=BinarySearch
- *   data_json: JSON array string e.g. "[5,3,8,1]"
- *   extra: for binary search, the target value (as int); ignored otherwise
- * Returns: total step count
- */
-EMSCRIPTEN_KEEPALIVE
-int run_algorithm(int algo_id, const char* data_json, int extra) {
-    g_steps.clear();
+    // Lazy-init the recorder with the DB hook wired in
+    if (!g_recorder) {
+        g_recorder = new StepRecorder(
+            [](const std::string& algo, int size, int steps, int cmps, int swaps) {
+                db_log(algo, size, steps, cmps, swaps);
+            }
+        );
+    }
+    g_recorder->clear();
 
-    // Parse JSON array
+    // Parse input — accepts "[5,3,8,1]" or "5,3,8,1"
     std::vector<int> arr;
-    std::string raw(data_json);
     std::string nums;
-    for (char c : raw) if (c != '[' && c != ']' && c != ' ') nums += c;
+    for (char c : data_json) if (c != '[' && c != ']' && c != ' ') nums += c;
     std::istringstream ss(nums);
     std::string tok;
     while (std::getline(ss, tok, ',')) {
-        if (!tok.empty()) arr.push_back(std::stoi(tok));
+        if (!tok.empty()) {
+            try { arr.push_back(std::stoi(tok)); } catch (...) {}
+        }
     }
     if (arr.empty()) return 0;
 
-    static const char* names[] = {"Bubble Sort","Selection Sort","Insertion Sort","Merge Sort","Quick Sort","Binary Search"};
+    static const char* names[] = {
+        "Bubble Sort","Selection Sort","Insertion Sort",
+        "Merge Sort","Quick Sort","Binary Search"
+    };
     std::string algo_name = (algo_id >= 0 && algo_id <= 5) ? names[algo_id] : "Unknown";
 
     switch (algo_id) {
-        case 0: bubble_sort(arr);         break;
-        case 1: selection_sort(arr);      break;
-        case 2: insertion_sort(arr);      break;
-        case 3: merge_sort(arr);          break;
-        case 4: quick_sort(arr);          break;
-        case 5: binary_search(arr, extra);break;
+        case 0: {
+            // ── OOP path: polymorphic BubbleSort via Algorithm base ──────────
+            BubbleSort bs(*g_recorder);
+            bs.sort(arr);
+            break;
+        }
+        case 1: selection_sort(arr);       break;
+        case 2: insertion_sort(arr);       break;
+        case 3: merge_sort(arr);           break;
+        case 4: quick_sort(arr);           break;
+        case 5: binary_search(arr, extra); break;
         default: break;
     }
 
-    // Log to SQLite
-    db_log(algo_name, arr.size(), g_steps.size(), count_phase("compare"), count_phase("swap"));
+    // Flush metrics to Performance_Logs
+    g_recorder->flush_db(algo_name, static_cast<int>(arr.size()));
 
-    return (int)g_steps.size();
+    return g_recorder->size();
 }
 
-/**
- * get_steps_json() → heap-allocated C string of the full step timeline.
- * Caller must free with free_result().
- */
-EMSCRIPTEN_KEEPALIVE
-char* get_steps_json() {
-    std::string json = steps_to_json();
-    char* buf = (char*)malloc(json.size() + 1);
-    memcpy(buf, json.c_str(), json.size() + 1);
-    return buf;
+static std::string get_steps_json_impl()  {
+    return g_recorder ? g_recorder->to_json() : "[]";
+}
+static std::string get_steps_pipe_impl()  {
+    return g_recorder ? g_recorder->to_pipe() : "";
 }
 
-/**
- * get_history_json() → heap-allocated C string of the SQLite history table.
- */
-EMSCRIPTEN_KEEPALIVE
-char* get_history_json() {
+static std::string get_history_json_impl() {
     db_init();
     std::ostringstream oss;
     oss << "[";
-    bool first = true;
 
-    auto cb = [](void* ud, int, char** vals, char** cols) -> int {
+    // Query uses spec column names: Algorithm_Name, Dataset_Size, Total_Steps_Computed
+    auto cb = [](void* ud, int, char** vals, char**) -> int {
         std::ostringstream* o = (std::ostringstream*)ud;
-        // id, timestamp, algorithm, input_size, total_steps, comparisons, swaps
+        // cols: id | Run_Timestamp | Algorithm_Name | Dataset_Size |
+        //       Total_Steps_Computed | Comparisons_Count | Swaps_Count
         if (o->tellp() > 1) *o << ",";
         *o << "{"
-           << "\"id\":"         << (vals[0]?vals[0]:"0")    << ","
-           << "\"timestamp\":\"" << (vals[1]?vals[1]:"")   << "\","
-           << "\"algorithm\":\"" << (vals[2]?vals[2]:"")   << "\","
-           << "\"input_size\":" << (vals[3]?vals[3]:"0")   << ","
-           << "\"total_steps\":"<< (vals[4]?vals[4]:"0")   << ","
-           << "\"comparisons\":"<< (vals[5]?vals[5]:"0")   << ","
-           << "\"swaps\":"      << (vals[6]?vals[6]:"0")
+           << "\"id\":"                   << (vals[0]?vals[0]:"0")  << ","
+           << "\"Run_Timestamp\":\""      << (vals[1]?vals[1]:"")   << "\","
+           << "\"Algorithm_Name\":\""     << (vals[2]?vals[2]:"")   << "\","
+           << "\"Dataset_Size\":"         << (vals[3]?vals[3]:"0")  << ","
+           << "\"Total_Steps_Computed\":" << (vals[4]?vals[4]:"0")  << ","
+           << "\"Comparisons_Count\":"    << (vals[5]?vals[5]:"0")  << ","
+           << "\"Swaps_Count\":"          << (vals[6]?vals[6]:"0")
            << "}";
         return 0;
     };
 
     sqlite3_exec(g_db,
-        "SELECT id,timestamp,algorithm,input_size,total_steps,comparisons,swaps FROM history ORDER BY id DESC LIMIT 50;",
+        "SELECT id, Run_Timestamp, Algorithm_Name, Dataset_Size, "
+        "Total_Steps_Computed, Comparisons_Count, Swaps_Count "
+        "FROM Performance_Logs ORDER BY id DESC LIMIT 50;",
         cb, &oss, nullptr);
 
     oss << "]";
-    std::string json = oss.str();
-    char* buf = (char*)malloc(json.size() + 1);
-    memcpy(buf, json.c_str(), json.size() + 1);
-    return buf;
+    return oss.str();
 }
 
-/** Free a string returned by get_steps_json / get_history_json */
-EMSCRIPTEN_KEEPALIVE
-void free_result(char* ptr) { free(ptr); }
+// Flush IDBFS writes to the browser's IndexedDB for cross-reload persistence.
+// Call after run_algorithm_impl to ensure the Performance_Logs row is saved.
+static void db_sync_impl() {
+    // EM_ASM is still valid alongside Embind
+    EM_ASM(
+        if (typeof FS !== 'undefined' && typeof FS.syncfs === 'function') {
+            FS.syncfs(false, function(err) {
+                if (err) console.warn('[AlgoEngine] IDBFS sync error:', err);
+            });
+        }
+    );
+}
 
-} // extern "C"
+// ── EMSCRIPTEN_BINDINGS block — the spec-required binding method ───────────────
+EMSCRIPTEN_BINDINGS(algo_engine) {
+    function("run_algorithm",    &run_algorithm_impl);
+    function("get_steps_json",   &get_steps_json_impl);
+    function("get_steps_pipe",   &get_steps_pipe_impl);   // spec primary format
+    function("get_history_json", &get_history_json_impl);
+    function("db_sync",          &db_sync_impl);
+}

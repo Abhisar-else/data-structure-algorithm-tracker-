@@ -715,6 +715,110 @@ footer {
   }
   aside { border-right: none; border-top: 1px solid var(--border); }
 }
+
+/* ── Source Trace / Code Panel ────────────────────────────────────────────── */
+.code-stage {
+  flex: 1;
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.code-stage.active { display: flex; }
+
+.code-panel-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 24px;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+  flex-shrink: 0;
+}
+
+.code-lang-badge {
+  font-family: var(--mono);
+  font-size: .6rem;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: rgba(0,229,255,.12);
+  color: var(--accent);
+  border: 1px solid rgba(0,229,255,.25);
+}
+
+.code-title {
+  font-family: var(--mono);
+  font-size: .72rem;
+  color: var(--text);
+}
+
+.code-note {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: .65rem;
+  color: var(--textdim);
+  font-style: italic;
+  transition: color .2s;
+}
+
+.code-note.active { color: var(--accent); }
+
+.code-block {
+  flex: 1;
+  overflow-y: auto;
+  margin: 0;
+  padding: 20px 0;
+  background: var(--bg);
+  font-family: var(--mono);
+  font-size: .82rem;
+  line-height: 1.7;
+  border: none;
+  outline: none;
+}
+
+/* ── Individual code line ───────────────────────────────────────────────── */
+.code-line {
+  display: block;
+  padding: 1px 28px;
+  border-left: 3px solid transparent;          /* placeholder for highlight border */
+  transition: background .12s ease, border-color .12s ease, color .12s ease;
+  white-space: pre;
+  color: var(--text);
+}
+
+.code-line:hover {
+  background: rgba(255,255,255,.02);
+}
+
+/* ── Active line highlight (toggled by JS on each step) ─────────────────── */
+.active-line {
+  background: rgba(0, 229, 255, .08) !important;
+  border-left-color: var(--accent) !important;
+  color: #fff !important;
+  box-shadow: inset 3px 0 12px rgba(0,229,255,.06);
+}
+
+/* Phase-specific active line colours */
+.active-line.phase-swap {
+  background: rgba(255, 71, 87, .10) !important;
+  border-left-color: var(--red) !important;
+  box-shadow: inset 3px 0 12px rgba(255,71,87,.06);
+}
+
+.active-line.phase-done {
+  background: rgba(46, 204, 113, .10) !important;
+  border-left-color: var(--green) !important;
+  box-shadow: inset 3px 0 12px rgba(46,204,113,.06);
+}
+
+/* ── Syntax token colours ───────────────────────────────────────────────── */
+.code-block .kw     { color: #7dcfff; }        /* keywords: void, int, bool, for, if */
+.code-block .num    { color: #ff9e64; }        /* numeric literals */
+.code-block .op     { color: #89ddff; }        /* operators */
+.code-block .comment{ color: #4a5568; font-style: italic; }
 </style>
 </head>
 <body>
@@ -831,6 +935,7 @@ footer {
 
   <div class="tab-bar">
     <div class="tab active" data-tab="viz">Visualization</div>
+    <div class="tab" data-tab="code">Source Trace</div>
     <div class="tab" data-tab="history">History Log</div>
   </div>
 
@@ -855,6 +960,28 @@ footer {
       </div>
     </div>
 
+  </div><!-- /#tab-viz -->
+
+  <!-- Source Trace tab — Bubble Sort code panel with per-line highlighting -->
+  <div class="code-stage" id="tab-code">
+    <div class="code-panel-header">
+      <span class="code-lang-badge">C++</span>
+      <span class="code-title">BubbleSort::sort() — active line highlighted in real time</span>
+      <span class="code-note" id="code-note">Run Bubble Sort to activate</span>
+    </div>
+    <pre class="code-block"><code id="bubble-source"><span data-line="1"  class="code-line"> 1  <span class="kw">void</span> BubbleSort::sort(vector&lt;<span class="kw">int</span>&gt;&amp; arr) {</span>
+<span data-line="2"  class="code-line"> 2    <span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">0</span>; i &lt; n<span class="op">-</span><span class="num">1</span>; i++) {</span>
+<span data-line="3"  class="code-line"> 3      <span class="kw">bool</span> swapped = <span class="kw">false</span>;</span>
+<span data-line="4"  class="code-line"> 4      <span class="kw">for</span> (<span class="kw">int</span> j = <span class="num">0</span>; j &lt; n<span class="op">-</span>i<span class="op">-</span><span class="num">1</span>; j++) {</span>
+<span data-line="5"  class="code-line"> 5        <span class="kw">if</span> (arr[j] <span class="op">&gt;</span> arr[j<span class="op">+</span><span class="num">1</span>]) {</span>
+<span data-line="6"  class="code-line"> 6          swap(arr[j], arr[j<span class="op">+</span><span class="num">1</span>]);     <span class="comment">// ← swap fires here</span></span>
+<span data-line="7"  class="code-line"> 7          swapped = <span class="kw">true</span>;</span>
+<span data-line="8"  class="code-line"> 8        }</span>
+<span data-line="9"  class="code-line"> 9      }</span>
+<span data-line="10" class="code-line">10      <span class="kw">if</span> (!swapped) <span class="kw">break</span>;          <span class="comment">// ← early exit</span></span>
+<span data-line="11" class="code-line">11    }</span>
+<span data-line="12" class="code-line">12  }                                   <span class="comment">// ← sorted</span></span>
+</code></pre>
   </div>
 
   <!-- History tab -->
@@ -883,7 +1010,6 @@ footer {
 
 <!-- ── Scripts ─────────────────────────────────────────────────────────────── -->
 <script src="engine.sim.js"></script>
-<script src="engine.wasm.js"></script>
 <script>
 /* ════════════════════════════════════════════════════════════════════════════
    BRIDGE LAYER — JavaScript coordinator
@@ -944,9 +1070,14 @@ document.querySelectorAll('.tab').forEach(tab => {
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     tab.classList.add('active');
     const which = tab.dataset.tab;
-    document.getElementById('tab-viz').classList.toggle('active', which === 'viz');
+    document.getElementById('tab-viz').classList.toggle('active',     which === 'viz');
+    document.getElementById('tab-code').classList.toggle('active',    which === 'code');
     document.getElementById('tab-history').classList.toggle('active', which === 'history');
     if (which === 'history') renderHistory();
+    // Re-apply active line when switching to code tab mid-playback
+    if (which === 'code' && steps.length && currentStep > 0) {
+      highlightLine(steps[currentStep - 1]);
+    }
   });
 });
 
@@ -1009,6 +1140,39 @@ $runBtn.addEventListener('click', () => {
   setControls(true);
 });
 
+// ── Active-line highlight (PART 2 — Source Trace panel) ──────────────────────
+// Reads step.ln (lineNumber from C++ BubbleSort::sort).
+// For all other algorithms ln === -1 → clears any previous highlight.
+
+const $codeLines   = document.querySelectorAll('#bubble-source .code-line');
+const $codeNote    = document.getElementById('code-note');
+
+function highlightLine(step) {
+  // Remove previous highlight from all lines
+  $codeLines.forEach(el => {
+    el.classList.remove('active-line', 'phase-swap', 'phase-done');
+  });
+
+  const ln = step.ln ?? step.lineNumber ?? -1;  // JSON uses "ln" key
+  if (ln < 1) return;                            // -1 = no highlight (non-BubbleSort)
+
+  const target = document.querySelector(`#bubble-source [data-line="${ln}"]`);
+  if (!target) return;
+
+  target.classList.add('active-line');
+
+  // Phase-specific colour override
+  if (step.phase === 'swap')  target.classList.add('phase-swap');
+  if (step.phase === 'done')  target.classList.add('phase-done');
+
+  // Update the header note
+  $codeNote.textContent = `Line ${ln} — ${step.phase.toUpperCase()}`;
+  $codeNote.classList.add('active');
+
+  // Scroll the line into view inside the code panel (smooth, centred)
+  target.scrollIntoView({ block: 'center', behavior: 'smooth' });
+}
+
 // ── Render a single step ─────────────────────────────────────────────────────
 function renderStep(idx) {
   if (!steps.length) return;
@@ -1059,6 +1223,9 @@ function renderStep(idx) {
     <span class="action-phase ${s.phase}">${s.phase.toUpperCase()}</span>
     <span class="action-text">${s.action}</span>
   `;
+
+  // Source-line highlight (PART 2 — only active for Bubble Sort; -1 for others)
+  highlightLine(s);
 }
 
 // ── Playback engine ───────────────────────────────────────────────────────────
@@ -1147,18 +1314,18 @@ function renderHistory() {
   `;
 
   rows.forEach((r, i) => {
-    const algoIdx = AlgoEngine.NAMES.indexOf(r.algorithm);
+    const algoIdx = AlgoEngine.NAMES.indexOf(r.Algorithm_Name || r.algorithm);
     const cx = algoIdx >= 0 ? COMPLEXITY[algoIdx] : '—';
     html += `
       <tr>
         <td>${r.id}</td>
-        <td class="algo-name">${r.algorithm}</td>
-        <td>${r.input_size}</td>
-        <td class="steps-val">${r.total_steps}</td>
-        <td>${r.comparisons}</td>
-        <td>${r.swaps}</td>
+        <td class="algo-name">${r.Algorithm_Name || r.algorithm || '—'}</td>
+        <td>${r.Dataset_Size    ?? r.input_size   ?? '—'}</td>
+        <td class="steps-val">${r.Total_Steps_Computed ?? r.total_steps ?? '—'}</td>
+        <td>${r.Comparisons_Count ?? r.comparisons ?? '—'}</td>
+        <td>${r.Swaps_Count       ?? r.swaps       ?? '—'}</td>
         <td><span class="complexity-badge">${cx}</span></td>
-        <td class="ts">${r.timestamp}</td>
+        <td class="ts">${r.Run_Timestamp || r.timestamp || '—'}</td>
       </tr>
     `;
   });
