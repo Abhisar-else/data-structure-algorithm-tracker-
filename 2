@@ -6380,7 +6380,7 @@ function checkIncomingModuleAPI() {
   ignoredModuleProp('onSbrkGrow');
 }
 var ASM_CONSTS = {
-  174284: () => { if (typeof FS !== 'undefined' && typeof FS.syncfs === 'function') { FS.syncfs(false, function(err) { if (err) console.warn('[AlgoEngine] IDBFS sync error:', err); }); } }
+  177676: () => { if(typeof FS!=='undefined'&&typeof FS.syncfs==='function')FS.syncfs(false,function(e){if(e)console.warn('[AlgoEngine] sync err',e);}); }
 };
 
 // Imports from the Wasm binary.

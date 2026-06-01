@@ -962,26 +962,14 @@ footer {
 
   </div><!-- /#tab-viz -->
 
-  <!-- Source Trace tab — Bubble Sort code panel with per-line highlighting -->
+  <!-- Source Trace tab — dynamically injected per selected algorithm -->
   <div class="code-stage" id="tab-code">
     <div class="code-panel-header">
       <span class="code-lang-badge">C++</span>
-      <span class="code-title">BubbleSort::sort() — active line highlighted in real time</span>
-      <span class="code-note" id="code-note">Run Bubble Sort to activate</span>
+      <span class="code-title" id="code-title">BubbleSort::sort()</span>
+      <span class="code-note" id="code-note">Run an algorithm to activate</span>
     </div>
-    <pre class="code-block"><code id="bubble-source"><span data-line="1"  class="code-line"> 1  <span class="kw">void</span> BubbleSort::sort(vector&lt;<span class="kw">int</span>&gt;&amp; arr) {</span>
-<span data-line="2"  class="code-line"> 2    <span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">0</span>; i &lt; n<span class="op">-</span><span class="num">1</span>; i++) {</span>
-<span data-line="3"  class="code-line"> 3      <span class="kw">bool</span> swapped = <span class="kw">false</span>;</span>
-<span data-line="4"  class="code-line"> 4      <span class="kw">for</span> (<span class="kw">int</span> j = <span class="num">0</span>; j &lt; n<span class="op">-</span>i<span class="op">-</span><span class="num">1</span>; j++) {</span>
-<span data-line="5"  class="code-line"> 5        <span class="kw">if</span> (arr[j] <span class="op">&gt;</span> arr[j<span class="op">+</span><span class="num">1</span>]) {</span>
-<span data-line="6"  class="code-line"> 6          swap(arr[j], arr[j<span class="op">+</span><span class="num">1</span>]);     <span class="comment">// ← swap fires here</span></span>
-<span data-line="7"  class="code-line"> 7          swapped = <span class="kw">true</span>;</span>
-<span data-line="8"  class="code-line"> 8        }</span>
-<span data-line="9"  class="code-line"> 9      }</span>
-<span data-line="10" class="code-line">10      <span class="kw">if</span> (!swapped) <span class="kw">break</span>;          <span class="comment">// ← early exit</span></span>
-<span data-line="11" class="code-line">11    }</span>
-<span data-line="12" class="code-line">12  }                                   <span class="comment">// ← sorted</span></span>
-</code></pre>
+    <pre class="code-block"><code id="bubble-source"></code></pre>
   </div>
 
   <!-- History tab -->
@@ -1009,8 +997,379 @@ footer {
 </div><!-- /.app -->
 
 <!-- ── Scripts ─────────────────────────────────────────────────────────────── -->
+<!-- Phase 3: Highlight.js for syntax colouring -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/cpp.min.js"></script>
 <script src="engine.sim.js"></script>
 <script>
+
+// ════════════════════════════════════════════════════════════════════════════
+// PHASE 2 — Algorithm → C++ Source Map
+// Each entry: { title, lines: ["raw cpp line", ...] }
+// Lines are 1-indexed: lines[0] = line 1 in the code panel.
+// Keep lines concise — these are snippets, not full headers.
+// ════════════════════════════════════════════════════════════════════════════
+
+const SOURCE_MAP = {
+  0: {
+    title: 'BubbleSort::sort()',
+    lines: [
+      'void BubbleSort::sort(vector<int>& arr) {',
+      '  for (int i = 0; i < n-1; i++) {',
+      '    bool swapped = false;',
+      '    for (int j = 0; j < n-i-1; j++) {',
+      '      if (arr[j] > arr[j+1]) {',
+      '        swap(arr[j], arr[j+1]);     // ← swap fires here',
+      '        swapped = true;',
+      '      }',
+      '    }',
+      '    if (!swapped) break;            // ← early exit',
+      '  }',
+      '}                                   // ← sorted',
+    ]
+  },
+  1: {
+    title: 'SelectionSort::run()',
+    lines: [
+      'void SelectionSort::run(vector<int>& arr) {',
+      '  for (int i = 0; i < n-1; i++) {',
+      '    int minIdx = i;                 // assume i is min',
+      '    for (int j = i+1; j < n; j++) {',
+      '      if (arr[j] < arr[minIdx])     // new min found',
+      '        minIdx = j;',
+      '    swap(arr[i], arr[minIdx]);      // place min',
+      '}                                   // ← sorted',
+    ]
+  },
+  2: {
+    title: 'InsertionSort::run()',
+    lines: [
+      'void InsertionSort::run(vector<int>& arr) {',
+      '  for (int i = 1; i < n; i++) {',
+      '    int key = arr[i];',
+      '    int j = i - 1;',
+      '    while (j >= 0 && arr[j] > key)',
+      '      arr[j+1] = arr[j--];         // shift right',
+      '    arr[j+1] = key;                // place key',
+      '}                                   // ← sorted',
+    ]
+  },
+  3: {
+    title: 'MergeSort::run()',
+    lines: [
+      'void MergeSort::run(vector<int>& arr) {',
+      '  if (l >= r) return;              // base case',
+      '  int mid = l + (r-l)/2;',
+      '  mergeSort(arr, l, mid);          // recurse left',
+      '  mergeSort(arr, mid+1, r);        // recurse right',
+      '  merge(arr, l, mid, r);           // merge step',
+      '  // comparing L[i] vs R[j]',
+      '  arr[k++] = smaller;              // place element',
+      '}                                   // ← sorted',
+    ]
+  },
+  4: {
+    title: 'QuickSort::run()',
+    lines: [
+      'void QuickSort::run(vector<int>& arr) {',
+      '  if (lo >= hi) return;            // base case',
+      '  // partition(lo, hi)',
+      '  pivot = arr[hi];                 // choose pivot',
+      '  if (arr[j] <= pivot)             // compare',
+      '    swap(arr[++i], arr[j]);        // swap smaller',
+      '  swap(arr[i+1], arr[hi]);         // place pivot',
+      '  quickSort(arr, lo, pi-1);        // recurse left',
+      '  quickSort(arr, pi+1, hi);        // recurse right',
+    ]
+  },
+  5: {
+    title: 'HeapSort::run()',
+    lines: [
+      'void HeapSort::run(vector<int>& arr) {',
+      '  buildMaxHeap(arr, n);',
+      '  for (int i = n-1; i > 0; i--) {',
+      '    swap(arr[0], arr[i]);          // extract max',
+      '    heapify(arr, i, 0);            // restore heap',
+      '  }',
+      '}                                   // ← sorted',
+    ]
+  },
+  6: {
+    title: 'ShellSort::run()',
+    lines: [
+      'void ShellSort::run(vector<int>& arr) {',
+      '  for (int gap = n/2; gap > 0; gap /= 2) {',
+      '    for (int i = gap; i < n; i++) {',
+      '      int tmp = arr[i]; int j = i;',
+      '      while (j >= gap && arr[j-gap] > tmp)',
+      '        arr[j] = arr[j-gap], j -= gap;  // shift',
+      '      arr[j] = tmp;                      // place',
+      '    }',
+      '  }',
+      '}                                   // ← sorted',
+    ]
+  },
+  7: {
+    title: 'CountingSort::run()',
+    lines: [
+      'void CountingSort::run(vector<int>& arr) {',
+      '  int max = *max_element(arr);',
+      '  vector<int> cnt(max+1, 0);',
+      '  for (int v : arr) cnt[v]++;       // count',
+      '  int idx = 0;',
+      '  for (int v = 0; v <= max; v++)',
+      '    while (cnt[v]-- > 0) arr[idx++] = v;',
+      '}                                   // ← sorted',
+    ]
+  },
+  8: {
+    title: 'RadixSort::run()',
+    lines: [
+      'void RadixSort::run(vector<int>& arr) {',
+      '  int max = *max_element(arr);',
+      '  for (int exp=1; max/exp>0; exp*=10)',
+      '    countByDigit(arr, exp);         // stable sort pass',
+      '  // digit = (val / exp) % 10',
+      '  // build output by counting sort',
+      '  // copy back to arr',
+      '}                                   // ← sorted',
+    ]
+  },
+  9: {
+    title: 'LinearSearch::run()',
+    lines: [
+      'void LinearSearch::run(vector<int>& arr, int target) {',
+      '  for (int i = 0; i < n; i++) {',
+      '    if (arr[i] == target)           // check each',
+      '      return i;                     // ← found',
+      '  }',
+      '  return -1;                        // ← not found',
+      '}',
+    ]
+  },
+  10: {
+    title: 'BinarySearch::run()',
+    lines: [
+      'void BinarySearch::run(vector<int>& arr, int target) {',
+      '  sort(arr.begin(), arr.end());     // pre-sort',
+      '  int lo = 0, hi = n - 1;',
+      '  while (lo <= hi) {               // loop',
+      '    int mid = lo + (hi-lo)/2;',
+      '    if (arr[mid] == target)         // compare mid',
+      '      return mid;                   // ← found',
+      '    else if (arr[mid] < target) lo = mid+1;  // go right',
+      '    else                       hi = mid-1;  // go left',
+      '  }',
+      '  return -1;                        // ← not found',
+      '}',
+    ]
+  },
+  11: {
+    title: 'JumpSearch::run()',
+    lines: [
+      'void JumpSearch::run(vector<int>& arr, int target) {',
+      '  int step = sqrt(n), prev = 0;',
+      '  while (arr[min(step,n)-1] < target)',
+      '    prev = step, step += sqrt(n);   // jump block',
+      '  while (arr[prev] < target)',
+      '    prev++;                         // linear scan',
+      '  if (arr[prev] == target) return prev;',
+      '  return -1;',
+      '}',
+    ]
+  },
+  12: {
+    title: 'LinkedListOps::run()',
+    lines: [
+      'void LinkedListOps::run(vector<int>& input) {',
+      '  Node* head = nullptr;',
+      '  for (int v : input)',
+      '    insertTail(head, v);            // ← insert',
+      '  traverse(head);                   // ← visit each',
+      '  deleteNode(head, mid);            // ← delete',
+      '}',
+    ]
+  },
+  13: {
+    title: 'StackOps::run()',
+    lines: [
+      'void StackOps::run(vector<int>& input) {',
+      '  stack<int> stk;                  // LIFO',
+      '  for (int v : input) stk.push(v); // ← PUSH',
+      '  peek(stk.top());                 // ← PEEK',
+      '  while (!stk.empty())',
+      '    stk.pop();                     // ← POP',
+      '}',
+    ]
+  },
+  14: {
+    title: 'QueueOps::run()',
+    lines: [
+      'void QueueOps::run(vector<int>& input) {',
+      '  queue<int> q;                    // FIFO',
+      '  for (int v : input) q.push(v);  // ← ENQUEUE',
+      '  peek(q.front());                 // ← FRONT',
+      '  while (!q.empty())',
+      '    q.pop();                       // ← DEQUEUE',
+      '}',
+    ]
+  },
+  15: {
+    title: 'BSTOps::run() — Insert + Inorder',
+    lines: [
+      'void BSTOps::run(vector<int>& arr) {',
+      '  Node* root = nullptr;',
+      '  for (int v : arr) insert(root, v);',
+      '  // insert: compare with node',
+      '  if (v < node->val) go left;',
+      '  else               go right;',
+      '  inorder(root);                   // ← visit',
+      '}',
+    ]
+  },
+  16: {
+    title: 'BSTSearch::run()',
+    lines: [
+      'void BSTSearch::run(vector<int>& arr, int target) {',
+      '  Node* cur = root;',
+      '  while (cur != nullptr) {',
+      '    if (target == cur->val) found; // ← hit',
+      '    else if (target < cur->val)',
+      '      cur = cur->left;             // go left',
+      '    else cur = cur->right;         // go right',
+      '  }',
+      '}',
+    ]
+  },
+  17: {
+    title: 'GraphBFS::run()',
+    lines: [
+      'void GraphBFS::run(vector<int>& edges) {',
+      '  queue<int> q;',
+      '  q.push(src); seen[src] = true;',
+      '  while (!q.empty()) {',
+      '    int node = q.front(); q.pop(); // ← visit',
+      '    for (int nb : adj[node])',
+      '      if (!seen[nb]) q.push(nb);  // enqueue',
+      '  }',
+      '}',
+    ]
+  },
+  18: {
+    title: 'GraphDFS::run()',
+    lines: [
+      'void GraphDFS::run(vector<int>& edges) {',
+      '  dfs(src);',
+      '}',
+      'void dfs(int node) {',
+      '  seen[node] = true;               // ← visit',
+      '  for (int nb : adj[node])',
+      '    if (!seen[nb]) dfs(nb);        // recurse',
+      '}',
+    ]
+  },
+  19: {
+    title: 'MinHeap::run()',
+    lines: [
+      'void MinHeap::run(vector<int>& arr) {',
+      '  for (int v : arr) {',
+      '    heap.push_back(v); siftUp();   // ← insert',
+      '  }',
+      '  while (!heap.empty()) {',
+      '    extractMin();                  // ← min removed',
+      '    siftDown(0);                   // restore order',
+      '  }',
+      '}',
+    ]
+  },
+  20: {
+    title: 'FibDP::run()',
+    lines: [
+      'void FibDP::run(vector<int>& arr) {',
+      '  int n = arr[0];',
+      '  vector<int> dp(n+1, 0);',
+      '  dp[0] = 0; dp[1] = 1;           // base cases',
+      '  for (int i = 2; i <= n; i++)',
+      '    dp[i] = dp[i-1] + dp[i-2];    // recurrence',
+      '  // result: dp[n]',
+      '}',
+    ]
+  },
+  21: {
+    title: 'LCSAlgo::run()',
+    lines: [
+      'void LCSAlgo::run(vector<int>& arr) {',
+      '  // Split arr at 0 → A and B',
+      '  dp[m+1][n+1] = {0};',
+      '  for (int i=1; i<=m; i++)',
+      '    for (int j=1; j<=n; j++)',
+      '      if (A[i-1]==B[j-1])          // match',
+      '        dp[i][j] = dp[i-1][j-1]+1;',
+      '      else dp[i][j] = max(dp[i-1][j], dp[i][j-1]);',
+      '  // result: dp[m][n]',
+      '}',
+    ]
+  },
+  22: {
+    title: 'HashTableOps::run()',
+    lines: [
+      'void HashTableOps::run(vector<int>& arr) {',
+      '  // 11 buckets, separate chaining',
+      '  for (int v : arr) {',
+      '    int bkt = v % BUCKETS;         // hash fn',
+      '    table[bkt].push_back(v);       // ← insert',
+      '  }',
+      '  // search: hash → scan chain',
+      '  if (chain[i] == target) found;  // ← found',
+      '}',
+    ]
+  },
+};
+
+// ════════════════════════════════════════════════════════════════════════════
+// Phase 2 — injectSource(algoId)
+// Builds span[data-line="N"] elements from the source map and injects them
+// into #bubble-source. Highlight.js then colours tokens. Title updates too.
+// ════════════════════════════════════════════════════════════════════════════
+
+const $sourceEl    = document.getElementById('bubble-source');
+const $codeTitle   = document.getElementById('code-title');
+
+function injectSource(algoId) {
+  const entry = SOURCE_MAP[algoId];
+  if (!entry) {
+    $sourceEl.innerHTML = '<span class="code-line" style="color:var(--textdim)"> No source available for this algorithm.</span>';
+    $codeTitle.textContent = 'Source Trace';
+    return;
+  }
+
+  // Build raw text first so Highlight.js can tokenise it
+  const rawLines = entry.lines.map((l, i) => {
+    const num = String(i + 1).padStart(2, ' ');
+    return `${num}  ${l}`;
+  });
+  const rawCode = rawLines.join('\n');
+
+  // Run Highlight.js on the raw block to get coloured HTML
+  const highlighted = hljs.highlight(rawCode, { language: 'cpp' }).value;
+
+  // Split the highlighted HTML back into per-line spans.
+  // Highlight.js emits spans that may cross newlines; we split on '\n'
+  // and wrap each line in a data-line span, resetting any open spans.
+  const htmlLines = highlighted.split('\n');
+  let html = '';
+  htmlLines.forEach((lineHtml, i) => {
+    const ln = i + 1;
+    html += `<span data-line="${ln}" class="code-line">${lineHtml}\n</span>`;
+  });
+
+  $sourceEl.innerHTML = html;
+  $codeTitle.textContent = entry.title + ' — active line highlighted in real time';
+}
+
+// ── Inject source immediately for the default algo (0 = Bubble Sort) ─────────
+injectSource(0);
 /* ════════════════════════════════════════════════════════════════════════════
    BRIDGE LAYER — JavaScript coordinator
    Handles UI state, hands data to C++ engine (via JS sim), animates results.
@@ -1061,6 +1420,13 @@ document.querySelectorAll('.algo-btn').forEach(btn => {
     selectedAlgo = parseInt(btn.dataset.algo);
     $targetRow.classList.toggle('visible', selectedAlgo === 5);
     stopPlayback();
+    // Phase 2: swap source panel to this algorithm's code
+    injectSource(selectedAlgo);
+    // Clear any stale line highlight after swap
+    document.querySelectorAll('#bubble-source .code-line')
+      .forEach(el => el.classList.remove('active-line','phase-swap','phase-done'));
+    $codeNote.textContent = 'Run algorithm to activate';
+    $codeNote.classList.remove('active');
   });
 });
 
@@ -1104,11 +1470,28 @@ function parseArray() {
     .filter(n => !isNaN(n));
 }
 
+// ── Phase 4: Input validation ────────────────────────────────────────────────
+function validateInput(arr, algoId) {
+  if (!arr.length)
+    return 'Enter at least one number.';
+  if (arr.some(isNaN))
+    return 'Invalid characters detected — numbers only, comma-separated.';
+  // Size limits per algorithm category
+  const isGraph = algoId >= 17 && algoId <= 18;
+  const isDP    = algoId >= 20 && algoId <= 21;
+  const limit   = isGraph ? 20 : isDP ? 30 : 60;
+  if (arr.length > limit)
+    return `Max ${limit} elements for this algorithm (you entered ${arr.length}).`;
+  if (arr.some(v => v < 0) && (algoId === 7 || algoId === 8))
+    return 'Counting Sort and Radix Sort require non-negative integers.';
+  return null; // valid
+}
+
 // ── Run ───────────────────────────────────────────────────────────────────────
 $runBtn.addEventListener('click', () => {
   const arr = parseArray();
-  if (!arr.length) { alert('Please enter at least one number.'); return; }
-  if (arr.length > 60) { alert('Max 60 elements for visualization clarity.'); return; }
+  const err = validateInput(arr, selectedAlgo);
+  if (err) { alert(err); return; }
 
   stopPlayback();
 
@@ -1140,38 +1523,45 @@ $runBtn.addEventListener('click', () => {
   setControls(true);
 });
 
-// ── Active-line highlight (PART 2 — Source Trace panel) ──────────────────────
-// Reads step.ln (lineNumber from C++ BubbleSort::sort).
-// For all other algorithms ln === -1 → clears any previous highlight.
+// ── Active-line highlight ─────────────────────────────────────────────────────
+// Reads step.ln from the C++ engine. Works for all algorithms that emit ln.
+// ln === -1 → no highlight (algorithm doesn't have source mapped yet).
 
-const $codeLines   = document.querySelectorAll('#bubble-source .code-line');
-const $codeNote    = document.getElementById('code-note');
+const $codeNote = document.getElementById('code-note');
 
 function highlightLine(step) {
-  // Remove previous highlight from all lines
-  $codeLines.forEach(el => {
-    el.classList.remove('active-line', 'phase-swap', 'phase-done');
-  });
+  // Always query live — injectSource() may have replaced the DOM
+  const $lines = document.querySelectorAll('#bubble-source .code-line');
+  $lines.forEach(el => el.classList.remove('active-line', 'phase-swap', 'phase-done'));
 
-  const ln = step.ln ?? step.lineNumber ?? -1;  // JSON uses "ln" key
-  if (ln < 1) return;                            // -1 = no highlight (non-BubbleSort)
+  const ln = step.ln ?? step.lineNumber ?? -1;
+  if (ln < 1) return;
 
   const target = document.querySelector(`#bubble-source [data-line="${ln}"]`);
   if (!target) return;
 
+  // Phase 2: apply highlight + phase colour
   target.classList.add('active-line');
+  if (step.phase === 'swap') target.classList.add('phase-swap');
+  if (step.phase === 'done') target.classList.add('phase-done');
 
-  // Phase-specific colour override
-  if (step.phase === 'swap')  target.classList.add('phase-swap');
-  if (step.phase === 'done')  target.classList.add('phase-done');
-
-  // Update the header note
-  $codeNote.textContent = `Line ${ln} — ${step.phase.toUpperCase()}`;
+  // Phase 2: update header note
+  $codeNote.textContent = `Line ${ln} — ${step.phase.toUpperCase()} — ${step.action}`;
   $codeNote.classList.add('active');
 
-  // Scroll the line into view inside the code panel (smooth, centred)
+  // Phase 3: auto-scroll to centre the active line in the panel
   target.scrollIntoView({ block: 'center', behavior: 'smooth' });
 }
+
+// ── DS / Graph / Tree renderer dispatcher ────────────────────────────────────
+// Algorithms 12-14 = Linear DS  → block+arrow canvas
+// Algorithms 15-16 = BST tree   → SVG node layout
+// Algorithms 17-18 = Graph      → SVG force layout
+// Everything else  → bar chart  (existing)
+
+const DS_IDS    = new Set([12, 13, 14]);       // Phase 5
+const TREE_IDS  = new Set([15, 16]);            // Phase 6
+const GRAPH_IDS = new Set([17, 18]);            // Phase 6
 
 // ── Render a single step ─────────────────────────────────────────────────────
 function renderStep(idx) {
@@ -1184,9 +1574,25 @@ function renderStep(idx) {
   $progressFill.style.width = pct + '%';
   $curStep.textContent = idx + 1;
 
-  // Bars
+  // Route to correct renderer
+  if (DS_IDS.has(selectedAlgo))    renderDS(s);
+  else if (TREE_IDS.has(selectedAlgo))  renderTree(s);
+  else if (GRAPH_IDS.has(selectedAlgo)) renderGraph(s);
+  else                              renderBars(s);
+
+  // Action log
+  $actionLog.innerHTML = `
+    <span class="action-phase ${s.phase}">${s.phase.toUpperCase()}</span>
+    <span class="action-text">${s.action}</span>
+  `;
+  highlightLine(s);
+}
+
+// ── BAR CHART renderer (sorts + searches + heap + dp + hash) ─────────────────
+function renderBars(s) {
   const chartH = $barChart.clientHeight || 300;
   $barChart.innerHTML = '';
+  $barChart.style.display = 'flex';
 
   s.array.forEach((val, i) => {
     const wrap = document.createElement('div');
@@ -1198,34 +1604,447 @@ function renderStep(idx) {
     const h = Math.max(4, Math.floor((val / maxVal) * (chartH - 30)));
     bar.style.height = h + 'px';
 
-    // Highlight
-    if (s.phase === 'done') {
-      bar.classList.add('highlight-done');
-    } else if (i === s.a && i === s.b) {
-      bar.classList.add('highlight-a');
-    } else if (i === s.a) {
-      bar.classList.add(s.phase === 'pivot' ? 'highlight-pivot' : 'highlight-a');
-    } else if (i === s.b) {
-      bar.classList.add('highlight-b');
-    }
+    if (s.phase === 'done')          bar.classList.add('highlight-done');
+    else if (i === s.a && i === s.b) bar.classList.add('highlight-a');
+    else if (i === s.a)              bar.classList.add(s.phase === 'pivot' ? 'highlight-pivot' : 'highlight-a');
+    else if (i === s.b)              bar.classList.add('highlight-b');
 
     const label = document.createElement('div');
     label.className = 'bar-val';
     label.textContent = s.array.length <= 20 ? val : '';
 
-    wrap.appendChild(bar);
-    wrap.appendChild(label);
+    wrap.appendChild(bar); wrap.appendChild(label);
     $barChart.appendChild(wrap);
   });
+}
 
-  // Action log
-  $actionLog.innerHTML = `
-    <span class="action-phase ${s.phase}">${s.phase.toUpperCase()}</span>
-    <span class="action-text">${s.action}</span>
-  `;
+// ── Phase 5: LINEAR DS renderer (Linked List / Stack / Queue) ─────────────────
+// Reads s.extra JSON: type = "ll" | "stack" | "queue"
+// Renders coloured blocks with arrows for next-pointers (LL), top marker (Stack),
+// front/rear markers (Queue).
 
-  // Source-line highlight (PART 2 — only active for Bubble Sort; -1 for others)
-  highlightLine(s);
+function renderDS(s) {
+  $barChart.style.display = 'block';
+  $barChart.innerHTML = '';
+
+  let data = null;
+  try { data = s.extra ? JSON.parse(s.extra) : null; } catch(e) {}
+
+  if (!data) {
+    // Fallback: plain array bars
+    $barChart.style.display = 'flex';
+    return renderBars(s);
+  }
+
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('width', '100%');
+  svg.setAttribute('height', '100%');
+  svg.style.overflow = 'visible';
+  $barChart.appendChild(svg);
+
+  const W = $barChart.clientWidth  || 600;
+  const H = $barChart.clientHeight || 260;
+  const BW = 64, BH = 36, GAP = 48;
+  const startX = 24, cy = H / 2;
+
+  if (data.type === 'll') {
+    // Build index → position map from head chain
+    const nodes = data.nodes;
+    const chain = [];
+    let cur = data.head;
+    while (cur !== -1 && chain.length < nodes.length) {
+      chain.push(cur);
+      cur = nodes[cur].next;
+    }
+
+    chain.forEach((ni, pos) => {
+      const x = startX + pos * (BW + GAP);
+      const node = nodes[ni];
+      const isActive  = ni === data.active;
+      const isDeleted = data.op === 'after_delete' && ni === data.active;
+
+      // Box
+      const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+      rect.setAttribute('x', x); rect.setAttribute('y', cy - BH/2);
+      rect.setAttribute('width', BW); rect.setAttribute('height', BH);
+      rect.setAttribute('rx', 6);
+      rect.setAttribute('fill', isActive ? 'rgba(255,71,87,.25)' : 'rgba(0,229,255,.08)');
+      rect.setAttribute('stroke', isActive ? 'var(--red, #ff4757)' : 'var(--accent, #00e5ff)');
+      rect.setAttribute('stroke-width', isActive ? 2 : 1);
+      svg.appendChild(rect);
+
+      // Value label
+      const txt = document.createElementNS('http://www.w3.org/2000/svg','text');
+      txt.setAttribute('x', x + BW/2); txt.setAttribute('y', cy + 5);
+      txt.setAttribute('text-anchor','middle');
+      txt.setAttribute('fill', isActive ? '#ff4757' : '#c8d4e8');
+      txt.setAttribute('font-family','Share Tech Mono,monospace');
+      txt.setAttribute('font-size','13');
+      txt.textContent = node.val;
+      svg.appendChild(txt);
+
+      // Index label
+      const idx_t = document.createElementNS('http://www.w3.org/2000/svg','text');
+      idx_t.setAttribute('x', x + BW/2); idx_t.setAttribute('y', cy - BH/2 - 6);
+      idx_t.setAttribute('text-anchor','middle');
+      idx_t.setAttribute('fill','#5a6a85');
+      idx_t.setAttribute('font-size','9');
+      idx_t.textContent = `[${ni}]`;
+      svg.appendChild(idx_t);
+
+      // Arrow to next
+      if (node.next !== -1) {
+        const ax = x + BW, ay = cy;
+        const bx = x + BW + GAP, by = cy;
+        const arrow = document.createElementNS('http://www.w3.org/2000/svg','line');
+        arrow.setAttribute('x1', ax); arrow.setAttribute('y1', ay);
+        arrow.setAttribute('x2', bx - 10); arrow.setAttribute('y2', by);
+        arrow.setAttribute('stroke','#00e5ff'); arrow.setAttribute('stroke-width','1.5');
+        arrow.setAttribute('marker-end','url(#arrowhead)');
+        svg.appendChild(arrow);
+      } else {
+        // NULL marker
+        const nt = document.createElementNS('http://www.w3.org/2000/svg','text');
+        nt.setAttribute('x', x + BW + 6); nt.setAttribute('y', cy + 4);
+        nt.setAttribute('fill','#3a4358'); nt.setAttribute('font-size','9');
+        nt.setAttribute('font-family','Share Tech Mono,monospace');
+        nt.textContent = 'NULL';
+        svg.appendChild(nt);
+      }
+    });
+
+    // HEAD label
+    if (data.head !== -1) {
+      const ht = document.createElementNS('http://www.w3.org/2000/svg','text');
+      ht.setAttribute('x', startX + BW/2); ht.setAttribute('y', cy + BH/2 + 16);
+      ht.setAttribute('text-anchor','middle');
+      ht.setAttribute('fill','#00e5ff'); ht.setAttribute('font-size','9');
+      ht.setAttribute('font-family','Share Tech Mono,monospace');
+      ht.textContent = 'HEAD';
+      svg.appendChild(ht);
+    }
+
+    // Empty message
+    if (chain.length === 0) {
+      const et = document.createElementNS('http://www.w3.org/2000/svg','text');
+      et.setAttribute('x', W/2); et.setAttribute('y', H/2);
+      et.setAttribute('text-anchor','middle');
+      et.setAttribute('fill','#3a4358'); et.setAttribute('font-size','13');
+      et.setAttribute('font-family','Share Tech Mono,monospace');
+      et.textContent = '[ empty list ]';
+      svg.appendChild(et);
+    }
+
+  } else if (data.type === 'stack') {
+    // Render LIFO: bottom → top, bottom of SVG = bottom of stack
+    const items = data.items;
+    const SBH = 34, SPAD = 4;
+    const sx = W/2 - BW/2;
+    items.forEach((val, i) => {
+      const isTop = i === items.length - 1;
+      const y = H - BH - (i * (SBH + SPAD)) - 20;
+
+      const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+      rect.setAttribute('x', sx); rect.setAttribute('y', y);
+      rect.setAttribute('width', BW); rect.setAttribute('height', SBH);
+      rect.setAttribute('rx', 4);
+      rect.setAttribute('fill', isTop ? 'rgba(0,229,255,.18)' : 'rgba(0,229,255,.06)');
+      rect.setAttribute('stroke', isTop ? '#00e5ff' : '#1e2535');
+      rect.setAttribute('stroke-width', isTop ? 2 : 1);
+      svg.appendChild(rect);
+
+      const txt = document.createElementNS('http://www.w3.org/2000/svg','text');
+      txt.setAttribute('x', sx + BW/2); txt.setAttribute('y', y + SBH/2 + 5);
+      txt.setAttribute('text-anchor','middle');
+      txt.setAttribute('fill', isTop ? '#00e5ff' : '#c8d4e8');
+      txt.setAttribute('font-family','Share Tech Mono,monospace');
+      txt.setAttribute('font-size','13');
+      txt.textContent = val;
+      svg.appendChild(txt);
+
+      if (isTop) {
+        const tl = document.createElementNS('http://www.w3.org/2000/svg','text');
+        tl.setAttribute('x', sx + BW + 8); tl.setAttribute('y', y + SBH/2 + 5);
+        tl.setAttribute('fill','#00e5ff'); tl.setAttribute('font-size','9');
+        tl.setAttribute('font-family','Share Tech Mono,monospace');
+        tl.textContent = '← TOP';
+        svg.appendChild(tl);
+      }
+    });
+
+    if (items.length === 0) {
+      const et = document.createElementNS('http://www.w3.org/2000/svg','text');
+      et.setAttribute('x', W/2); et.setAttribute('y', H/2);
+      et.setAttribute('text-anchor','middle');
+      et.setAttribute('fill','#3a4358'); et.setAttribute('font-size','13');
+      et.setAttribute('font-family','Share Tech Mono,monospace');
+      et.textContent = '[ empty stack ]';
+      svg.appendChild(et);
+    }
+
+  } else if (data.type === 'queue') {
+    const items = data.items;
+    items.forEach((val, i) => {
+      const x = startX + i * (BW + GAP);
+      const isFront = i === 0;
+      const isRear  = i === items.length - 1;
+
+      const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+      rect.setAttribute('x', x); rect.setAttribute('y', cy - BH/2);
+      rect.setAttribute('width', BW); rect.setAttribute('height', BH);
+      rect.setAttribute('rx', 4);
+      rect.setAttribute('fill',
+        isFront ? 'rgba(255,71,87,.18)' :
+        isRear  ? 'rgba(168,85,247,.18)' : 'rgba(0,229,255,.06)');
+      rect.setAttribute('stroke',
+        isFront ? '#ff4757' : isRear ? '#a855f7' : '#1e2535');
+      rect.setAttribute('stroke-width', (isFront || isRear) ? 2 : 1);
+      svg.appendChild(rect);
+
+      const txt = document.createElementNS('http://www.w3.org/2000/svg','text');
+      txt.setAttribute('x', x + BW/2); txt.setAttribute('y', cy + 5);
+      txt.setAttribute('text-anchor','middle');
+      txt.setAttribute('fill', isFront ? '#ff4757' : isRear ? '#a855f7' : '#c8d4e8');
+      txt.setAttribute('font-family','Share Tech Mono,monospace');
+      txt.setAttribute('font-size','13');
+      txt.textContent = val;
+      svg.appendChild(txt);
+
+      const lbl = document.createElementNS('http://www.w3.org/2000/svg','text');
+      lbl.setAttribute('x', x + BW/2);
+      lbl.setAttribute('y', cy + BH/2 + 14);
+      lbl.setAttribute('text-anchor','middle');
+      lbl.setAttribute('fill', isFront ? '#ff4757' : isRear ? '#a855f7' : '#5a6a85');
+      lbl.setAttribute('font-size','9');
+      lbl.setAttribute('font-family','Share Tech Mono,monospace');
+      lbl.textContent = isFront && isRear ? 'FRONT/REAR' : isFront ? 'FRONT' : isRear ? 'REAR' : '';
+      svg.appendChild(lbl);
+
+      // Arrow between items
+      if (i < items.length - 1) {
+        const arrow = document.createElementNS('http://www.w3.org/2000/svg','line');
+        arrow.setAttribute('x1', x + BW); arrow.setAttribute('y1', cy);
+        arrow.setAttribute('x2', x + BW + GAP - 10); arrow.setAttribute('y2', cy);
+        arrow.setAttribute('stroke','#3a4358'); arrow.setAttribute('stroke-width','1.5');
+        arrow.setAttribute('marker-end','url(#arrowhead)');
+        svg.appendChild(arrow);
+      }
+    });
+
+    if (items.length === 0) {
+      const et = document.createElementNS('http://www.w3.org/2000/svg','text');
+      et.setAttribute('x', W/2); et.setAttribute('y', H/2);
+      et.setAttribute('text-anchor','middle');
+      et.setAttribute('fill','#3a4358'); et.setAttribute('font-size','13');
+      et.setAttribute('font-family','Share Tech Mono,monospace');
+      et.textContent = '[ empty queue ]';
+      svg.appendChild(et);
+    }
+  }
+
+  // Shared arrowhead marker
+  const defs = document.createElementNS('http://www.w3.org/2000/svg','defs');
+  defs.innerHTML = `<marker id="arrowhead" markerWidth="8" markerHeight="6"
+    refX="6" refY="3" orient="auto">
+    <polygon points="0 0, 8 3, 0 6" fill="#00e5ff" opacity="0.7"/>
+  </marker>`;
+  svg.insertBefore(defs, svg.firstChild);
+}
+
+// ── Phase 6: TREE renderer (BST) ─────────────────────────────────────────────
+// Reads s.extra JSON: {type:"bst", nodes:[{val,id,left,right,active,visited}]}
+// Draws nodes in a top-down tree layout with SVG
+
+function renderTree(s) {
+  $barChart.style.display = 'block';
+  $barChart.innerHTML = '';
+
+  let data = null;
+  try { data = s.extra ? JSON.parse(s.extra) : null; } catch(e) {}
+  if (!data || !data.nodes || !data.nodes.length) {
+    $barChart.style.display = 'flex';
+    return renderBars(s);
+  }
+
+  const W = $barChart.clientWidth  || 600;
+  const H = $barChart.clientHeight || 300;
+  const R = 20;  // node radius
+  const LEVEL_H = 70;
+
+  // Build id → node map
+  const byId = {};
+  data.nodes.forEach(n => { byId[n.id] = n; });
+
+  // Find root = node not referenced as any child
+  const childIds = new Set(data.nodes.flatMap(n => [n.left, n.right]).filter(x => x !== -1));
+  const root = data.nodes.find(n => !childIds.has(n.id));
+  if (!root) { $barChart.style.display='flex'; return renderBars(s); }
+
+  // Assign x positions via in-order traversal index
+  let xCounter = 0;
+  const pos = {};
+  function assignX(id, depth) {
+    if (id === -1) return;
+    const n = byId[id];
+    assignX(n.left, depth + 1);
+    pos[id] = { x: xCounter++, y: depth };
+    assignX(n.right, depth + 1);
+  }
+  assignX(root.id, 0);
+
+  const totalNodes = Object.keys(pos).length;
+  const xScale = Math.min((W - 60) / Math.max(totalNodes, 1), 60);
+  const xOffset = (W - totalNodes * xScale) / 2 + xScale / 2;
+
+  const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svg.setAttribute('width','100%'); svg.setAttribute('height','100%');
+  $barChart.appendChild(svg);
+
+  // Draw edges first (below nodes)
+  data.nodes.forEach(n => {
+    const p = pos[n.id];
+    if (!p) return;
+    const px = xOffset + p.x * xScale, py = 30 + p.y * LEVEL_H;
+    [n.left, n.right].forEach(cid => {
+      if (cid === -1) return;
+      const cp = pos[cid];
+      if (!cp) return;
+      const cx = xOffset + cp.x * xScale, cy2 = 30 + cp.y * LEVEL_H;
+      const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.setAttribute('x1', px); line.setAttribute('y1', py + R);
+      line.setAttribute('x2', cx); line.setAttribute('y2', cy2 - R);
+      line.setAttribute('stroke', byId[cid].visited ? '#00e5ff' : '#1e2535');
+      line.setAttribute('stroke-width', byId[cid].visited ? 1.5 : 1);
+      svg.appendChild(line);
+    });
+  });
+
+  // Draw nodes
+  data.nodes.forEach(n => {
+    const p = pos[n.id]; if (!p) return;
+    const cx = xOffset + p.x * xScale, cy2 = 30 + p.y * LEVEL_H;
+
+    const circle = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    circle.setAttribute('cx', cx); circle.setAttribute('cy', cy2); circle.setAttribute('r', R);
+    circle.setAttribute('fill',
+      n.active  ? 'rgba(255,71,87,.3)' :
+      n.visited ? 'rgba(0,229,255,.15)' : 'rgba(30,37,53,.8)');
+    circle.setAttribute('stroke',
+      n.active  ? '#ff4757' :
+      n.visited ? '#00e5ff' : '#3a4358');
+    circle.setAttribute('stroke-width', n.active ? 2.5 : 1.5);
+    svg.appendChild(circle);
+
+    const txt = document.createElementNS('http://www.w3.org/2000/svg','text');
+    txt.setAttribute('x', cx); txt.setAttribute('y', cy2 + 4);
+    txt.setAttribute('text-anchor','middle');
+    txt.setAttribute('fill', n.active ? '#ff4757' : n.visited ? '#00e5ff' : '#c8d4e8');
+    txt.setAttribute('font-family','Share Tech Mono,monospace');
+    txt.setAttribute('font-size','11');
+    txt.textContent = n.val;
+    svg.appendChild(txt);
+  });
+}
+
+// ── Phase 6: GRAPH renderer (BFS / DFS) ──────────────────────────────────────
+// Reads s.extra JSON: {type:"bfs"|"dfs", edges:[[u,v],...], visited:[], frontier:[], current:N}
+// Positions nodes in a circle, colours by visited/frontier/current
+
+function renderGraph(s) {
+  $barChart.style.display = 'block';
+  $barChart.innerHTML = '';
+
+  let data = null;
+  try { data = s.extra ? JSON.parse(s.extra) : null; } catch(e) {}
+  if (!data || !data.edges) {
+    $barChart.style.display = 'flex';
+    return renderBars(s);
+  }
+
+  const W = $barChart.clientWidth  || 600;
+  const H = $barChart.clientHeight || 300;
+  const R = 22;
+  const CR = Math.min(W, H) / 2 - R - 20;
+  const cx = W / 2, cy = H / 2;
+
+  // Collect unique nodes
+  const nodeSet = new Set();
+  data.edges.forEach(([u,v]) => { nodeSet.add(u); nodeSet.add(v); });
+  const nodes = Array.from(nodeSet).sort((a,b)=>a-b);
+  const n = nodes.length;
+  const angleStep = (2 * Math.PI) / Math.max(n, 1);
+
+  // Position map
+  const nodePos = {};
+  nodes.forEach((id, i) => {
+    const angle = i * angleStep - Math.PI / 2;
+    nodePos[id] = { x: cx + CR * Math.cos(angle), y: cy + CR * Math.sin(angle) };
+  });
+
+  const visitedSet   = new Set(data.visited  || []);
+  const frontierSet  = new Set(data.frontier || []);
+
+  const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svg.setAttribute('width','100%'); svg.setAttribute('height','100%');
+  $barChart.appendChild(svg);
+
+  // Edges
+  data.edges.forEach(([u, v]) => {
+    const pu = nodePos[u], pv = nodePos[v];
+    if (!pu || !pv) return;
+    const bothVisited = visitedSet.has(u) && visitedSet.has(v);
+    const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('x1', pu.x); line.setAttribute('y1', pu.y);
+    line.setAttribute('x2', pv.x); line.setAttribute('y2', pv.y);
+    line.setAttribute('stroke', bothVisited ? '#00e5ff' : '#1e2535');
+    line.setAttribute('stroke-width', bothVisited ? 1.5 : 1);
+    svg.appendChild(line);
+  });
+
+  // Nodes
+  nodes.forEach(id => {
+    const p = nodePos[id]; if (!p) return;
+    const isCurrent  = id === data.current;
+    const isVisited  = visitedSet.has(id);
+    const isFrontier = frontierSet.has(id);
+
+    const circle = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    circle.setAttribute('cx', p.x); circle.setAttribute('cy', p.y); circle.setAttribute('r', R);
+    circle.setAttribute('fill',
+      isCurrent  ? 'rgba(255,71,87,.35)'  :
+      isFrontier ? 'rgba(255,209,102,.2)' :
+      isVisited  ? 'rgba(0,229,255,.15)'  : 'rgba(30,37,53,.9)');
+    circle.setAttribute('stroke',
+      isCurrent  ? '#ff4757' :
+      isFrontier ? '#ffd166' :
+      isVisited  ? '#00e5ff' : '#3a4358');
+    circle.setAttribute('stroke-width', isCurrent ? 3 : 1.5);
+    svg.appendChild(circle);
+
+    const txt = document.createElementNS('http://www.w3.org/2000/svg','text');
+    txt.setAttribute('x', p.x); txt.setAttribute('y', p.y + 4);
+    txt.setAttribute('text-anchor','middle');
+    txt.setAttribute('fill', isCurrent ? '#ff4757' : isVisited ? '#00e5ff' : '#c8d4e8');
+    txt.setAttribute('font-family','Share Tech Mono,monospace');
+    txt.setAttribute('font-size','12');
+    txt.textContent = id;
+    svg.appendChild(txt);
+  });
+
+  // Legend
+  [['#ff4757','Current'],['#00e5ff','Visited'],['#ffd166','Frontier'],['#3a4358','Unvisited']].forEach(([col,lbl], i) => {
+    const lx = 12, ly = 14 + i * 16;
+    const dot = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    dot.setAttribute('cx', lx); dot.setAttribute('cy', ly); dot.setAttribute('r', 5);
+    dot.setAttribute('fill', col);
+    svg.appendChild(dot);
+    const lt = document.createElementNS('http://www.w3.org/2000/svg','text');
+    lt.setAttribute('x', lx+10); lt.setAttribute('y', ly+4);
+    lt.setAttribute('fill','#5a6a85'); lt.setAttribute('font-size','9');
+    lt.setAttribute('font-family','Share Tech Mono,monospace');
+    lt.textContent = lbl;
+    svg.appendChild(lt);
+  });
 }
 
 // ── Playback engine ───────────────────────────────────────────────────────────
