@@ -7,7 +7,7 @@
  *   AlgoEngine.getHistory()               → HistoryRow[]
  *
  * Step shape (matches C++ JSON output):
- *   { array[], a, b, action, phase, ln }
+ *   { array[], a, b, action, phase, ln, extra? }
  *   ln = lineNumber (-1 for non-BubbleSort algorithms)
  *
  * PerformanceLogs row shape (matches Performance_Logs column names):
@@ -21,6 +21,10 @@ const AlgoEngine = (() => {
   const performanceLogs = [];
   let logId = 1;
 
+  const HISTORY_LIMIT = 100;
+
+  const runCache = { algoId: null, inputKey: null, extra: null, steps: null };
+
   function dbLog(Algorithm_Name, Dataset_Size, Total_Steps_Computed,
                  Comparisons_Count, Swaps_Count) {
     performanceLogs.unshift({
@@ -32,15 +36,31 @@ const AlgoEngine = (() => {
       Comparisons_Count,
       Swaps_Count,
     });
-    if (performanceLogs.length > 50) performanceLogs.pop();
+    if (performanceLogs.length > HISTORY_LIMIT) performanceLogs.pop();
+  }
+
+  function inputCacheKey(inputArray, extra) {
+    return JSON.stringify(inputArray) + '\0' + String(extra);
+  }
+
+  function cloneSteps(src) {
+    return src.map(s => ({
+      array: [...s.array],
+      a: s.a,
+      b: s.b,
+      action: s.action,
+      phase: s.phase,
+      ln: s.ln,
+      extra: s.extra,
+    }));
   }
 
   // ── Step recorder ────────────────────────────────────────────────────────────
   let steps = [];
 
   // ln = lineNumber for source-code highlight panel (-1 = no highlight)
-  function record(arr, a, b, action, phase, ln = -1) {
-    steps.push({ array: [...arr], a, b, action, phase, ln });
+  function record(arr, a, b, action, phase, ln = -1, extra = null) {
+    steps.push({ array: [...arr], a, b, action, phase, ln, extra });
   }
 
   // ── BubbleSort — OOP mirror (generates lineNumber tags per spec) ──────────────
@@ -257,26 +277,40 @@ const AlgoEngine = (() => {
 
   function stackOps(arr) {
     const stk = [];
-    const serial = op => JSON.stringify({type:'stack', top:stk.length-1, op, items:[...stk]});
-    record(stk,-1,-1,'Stack — LIFO — empty','pivot',-1,serial('init'));
-    for (const v of arr) { stk.push(v); record(stk,stk.length-1,-1,`PUSH ${v}`,'insert',-1,serial('push')); }
-    if (stk.length) record(stk,stk.length-1,-1,`PEEK top=${stk[stk.length-1]}`,'compare',-1,serial('peek'));
-    while (stk.length) {
-      const top=stk.pop();
-      record(stk,-1,-1,`POP ${top}`,'delete',-1,serial('pop'));
+    const serial = (op, popping = null) => JSON.stringify({
+      type: 'stack', top: stk.length - 1, op, items: [...stk], popping,
+    });
+    record(stk, -1, -1, 'Stack — LIFO — empty', 'pivot', -1, serial('init'));
+    for (const v of arr) {
+      stk.push(v);
+      record(stk, stk.length - 1, -1, `PUSH ${v}`, 'insert', -1, serial('push'));
     }
-    record(stk,-1,-1,'Stack empty!','done',-1,serial('empty'));
+    if (stk.length) {
+      record(stk, stk.length - 1, -1, `PEEK top=${stk[stk.length - 1]}`, 'compare', -1, serial('peek'));
+    }
+    while (stk.length) {
+      const top = stk[stk.length - 1];
+      record(stk, stk.length - 1, -1, `POP ${top}`, 'delete', -1, serial('pop', top));
+      stk.pop();
+    }
+    record(stk, -1, -1, 'Stack empty!', 'done', -1, serial('empty'));
   }
 
   function queueOps(arr) {
     const q = [];
-    const serial = op => JSON.stringify({type:'queue', front:0, rear:q.length-1, op, items:[...q]});
-    record(q,-1,-1,'Queue — FIFO — empty','pivot',-1,serial('init'));
-    for (const v of arr) { q.push(v); record(q,q.length-1,-1,`ENQUEUE ${v}`,'insert',-1,serial('enqueue')); }
-    if (q.length) record(q,0,-1,`FRONT=${q[0]}`,'compare',-1,serial('front'));
+    const serial = (op, leaving = null) => JSON.stringify({
+      type: 'queue', front: 0, rear: q.length - 1, op, items: [...q], leaving,
+    });
+    record(q, -1, -1, 'Queue — FIFO — empty', 'pivot', -1, serial('init'));
+    for (const v of arr) {
+      q.push(v);
+      record(q, q.length - 1, -1, `ENQUEUE ${v}`, 'insert', -1, serial('enqueue'));
+    }
+    if (q.length) record(q, 0, -1, `FRONT=${q[0]}`, 'compare', -1, serial('front'));
     while (q.length) {
-      const front=q.shift();
-      record(q,-1,-1,`DEQUEUE ${front}`,'delete',-1,serial('dequeue'));
+      const front = q[0];
+      record(q, 0, -1, `DEQUEUE ${front}`, 'delete', -1, serial('dequeue', front));
+      q.shift();
     }
     record(q,-1,-1,'Queue empty!','done',-1,serial('empty'));
   }
@@ -358,41 +392,157 @@ const AlgoEngine = (() => {
   function graphBFS(arr) {
     if(!arr.length){record(arr,-1,-1,'Empty input','done');return;}
     const g={};
+    const allNodes = new Set();
     for(let i=0;i+1<arr.length;i+=2){
       const[u,v]=[arr[i],arr[i+1]];
       (g[u]=g[u]||[]).push(v);(g[v]=g[v]||[]).push(u);
+      allNodes.add(u);
+      allNodes.add(v);
     }
-    const visited=[],frontier=[],seen={},q=[arr[0]];
-    seen[arr[0]]=true;frontier.push(arr[0]);
-    const gj=(cur)=>JSON.stringify({type:'bfs',edges:arr.reduce((a,_,i)=>i%2===0?[...a,[arr[i],arr[i+1]]]:a,[]),visited:[...visited],frontier:[...frontier],current:cur});
-    record(visited,-1,-1,`BFS from ${arr[0]}`,'pivot',-1,gj(arr[0]));
-    while(q.length){
-      const node=q.shift();
-      frontier.splice(frontier.indexOf(node),1);
-      visited.push(node);
-      record(visited,visited.length-1,-1,`Visit ${node}`,'visit',-1,gj(node));
-      for(const nb of (g[node]||[])) if(!seen[nb]){seen[nb]=true;q.push(nb);frontier.push(nb);record(visited,-1,-1,`Enqueue ${nb}`,'compare',-1,gj(node));}
+    const visited=[],frontier=[],seen={};
+    const edgeList=arr.reduce((a,_,i)=>i%2===0?[...a,[arr[i],arr[i+1]]]:a,[]);
+    const gj=(cur)=>JSON.stringify({type:'bfs',edges:edgeList,visited:[...visited],frontier:[...frontier],current:cur});
+
+    function bfsFrom(src) {
+      const q=[src];
+      seen[src]=true;
+      frontier.push(src);
+      record(visited,-1,-1,`BFS from ${src}`,'pivot',-1,gj(src));
+      while(q.length){
+        const node=q.shift();
+        const fi=frontier.indexOf(node);
+        if(fi>=0) frontier.splice(fi,1);
+        visited.push(node);
+        record(visited,visited.length-1,-1,`Visit ${node}`,'visit',-1,gj(node));
+        for(const nb of (g[node]||[])){
+          if(!seen[nb]){
+            seen[nb]=true;
+            q.push(nb);
+            frontier.push(nb);
+            record(visited,-1,-1,`Enqueue ${nb}`,'compare',-1,gj(node));
+          }
+        }
+      }
     }
-    record(visited,-1,-1,`BFS complete! ${visited.length} nodes`,'done',-1,gj(-1));
+
+    // Secondary loop: restart BFS for each disconnected component
+    for (const src of [...allNodes].sort((a, b) => a - b)) {
+      if (!seen[src]) bfsFrom(src);
+    }
+    record(visited, -1, -1, `BFS complete! ${visited.length} nodes`, 'done', -1, gj(-1));
   }
 
   function graphDFS(arr) {
     if(!arr.length){record(arr,-1,-1,'Empty input','done');return;}
     const g={};
+    const allNodes = new Set();
     for(let i=0;i+1<arr.length;i+=2){
       const[u,v]=[arr[i],arr[i+1]];
       (g[u]=g[u]||[]).push(v);(g[v]=g[v]||[]).push(u);
+      allNodes.add(u);
+      allNodes.add(v);
     }
     const visited=[],seen={};
-    const gj=(cur)=>JSON.stringify({type:'dfs',edges:arr.reduce((a,_,i)=>i%2===0?[...a,[arr[i],arr[i+1]]]:a,[]),visited:[...visited],frontier:[],current:cur});
-    record(visited,-1,-1,`DFS from ${arr[0]}`,'pivot',-1,gj(arr[0]));
+    const edgeList=arr.reduce((a,_,i)=>i%2===0?[...a,[arr[i],arr[i+1]]]:a,[]);
+    const gj=(cur)=>JSON.stringify({type:'dfs',edges:edgeList,visited:[...visited],frontier:[],current:cur});
+
     function dfs(node){
-      seen[node]=true;visited.push(node);
+      seen[node]=true;
+      visited.push(node);
       record(visited,visited.length-1,-1,`DFS visit ${node}`,'visit',-1,gj(node));
-      for(const nb of (g[node]||[])) if(!seen[nb]){record(visited,-1,-1,`Explore ${node}→${nb}`,'pivot',-1,gj(nb));dfs(nb);}
+      for(const nb of (g[node]||[])){
+        if(!seen[nb]){
+          record(visited,-1,-1,`Explore ${node}→${nb}`,'pivot',-1,gj(nb));
+          dfs(nb);
+        }
+      }
     }
-    dfs(arr[0]);
-    record(visited,-1,-1,`DFS complete! ${visited.length} nodes`,'done',-1,gj(-1));
+
+    // Secondary loop: restart DFS for each disconnected component
+    for (const src of [...allNodes].sort((a, b) => a - b)) {
+      if (!seen[src]) {
+        record(visited, -1, -1, `DFS from ${src}`, 'pivot', -1, gj(src));
+        dfs(src);
+      }
+    }
+    record(visited, -1, -1, `DFS complete! ${visited.length} nodes`, 'done', -1, gj(-1));
+  }
+
+  function dijkstra(arr, source) {
+    if (!arr.length) { record(arr, -1, -1, 'Empty input', 'done'); return; }
+    if (arr.length % 3 !== 0) {
+      record(arr, -1, -1, 'Dijkstra expects triplets: u, weight, v', 'done');
+      return;
+    }
+
+    const edges = [];
+    const adj = {};
+    const nodes = new Set();
+    for (let i = 0; i + 2 < arr.length; i += 3) {
+      const u = arr[i], w = arr[i + 1], v = arr[i + 2];
+      if (w < 0) {
+        record(arr, -1, -1, 'Negative edge weights are not supported', 'done');
+        return;
+      }
+      edges.push({ u, v, w });
+      nodes.add(u); nodes.add(v);
+      (adj[u] = adj[u] || []).push({ v, w });
+    }
+
+    const nodeList = [...nodes].sort((a, b) => a - b);
+    const src = nodes.has(source) ? source : nodeList[0];
+    const dist = {};
+    const path = {};
+    for (const n of nodeList) {
+      dist[n] = -1;
+      path[n] = { prev: -1 };
+    }
+    dist[src] = 0;
+    path[src] = { prev: -1 };
+
+    const visited = [];
+    const frontier = [{ node: src, dist: 0 }];
+    const settled = new Set();
+
+    const snap = (current) => JSON.stringify({
+      type: 'dijkstra',
+      edges,
+      visited: [...visited],
+      frontier: frontier.map(f => ({ node: f.node, dist: f.dist })),
+      dist: Object.fromEntries(nodeList.map(n => [String(n), dist[n]])),
+      current,
+      path: Object.fromEntries(nodeList.map(n => [String(n), { prev: path[n].prev }])),
+    });
+
+    const disp = nodeList.length ? nodeList : [0];
+    record(disp, -1, -1, `Dijkstra from source ${src}`, 'pivot', -1, snap(src));
+
+    while (frontier.length) {
+      frontier.sort((a, b) => a.dist - b.dist || a.node - b.node);
+      const { node: u, dist: du } = frontier.shift();
+      if (settled.has(u)) continue;
+      if (du !== dist[u] && dist[u] !== -1) continue;
+
+      settled.add(u);
+      visited.push(u);
+      record(disp, -1, -1, `Settle ${u} (d=${du})`, 'visit', -1, snap(u));
+
+      for (const { v, w } of (adj[u] || [])) {
+        if (settled.has(v)) continue;
+        const alt = du + w;
+        record(disp, -1, -1, `Relax ${u}→${v} via ${w}`, 'compare', -1, snap(u));
+        if (dist[v] === -1 || alt < dist[v]) {
+          dist[v] = alt;
+          path[v] = { prev: u };
+          const existing = frontier.findIndex(f => f.node === v);
+          if (existing >= 0) frontier.splice(existing, 1);
+          frontier.push({ node: v, dist: alt });
+          record(disp, -1, -1, `Update dist[${v}]=${alt}`, 'pivot', -1, snap(v));
+        }
+      }
+    }
+
+    record(disp, -1, -1, `Dijkstra complete — ${visited.length} nodes settled`, 'done', -1, snap(-1));
   }
 
   // ── Remaining algorithms (minHeap, fibDP, lcsDP, hashTable) — unchanged from v3 ──
@@ -528,7 +678,8 @@ const AlgoEngine = (() => {
     'Graph BFS','Graph DFS',
     'Min-Heap',
     'Fibonacci DP','LCS DP',
-    'Hash Table'
+    'Hash Table',
+    'Dijkstra'
   ];
 
   const CATEGORY = [
@@ -538,7 +689,8 @@ const AlgoEngine = (() => {
     'graph','graph',
     'heap',
     'dp','dp',
-    'hash'
+    'hash',
+    'graph'
   ];
 
   // ── Input Validation ──────────────────────────────────────────────────────────
@@ -573,6 +725,14 @@ const AlgoEngine = (() => {
       throw err;
     }
 
+    const inputKey = inputCacheKey(inputArray, extra);
+    if (runCache.algoId === algoId &&
+        runCache.inputKey === inputKey &&
+        runCache.extra === extra &&
+        runCache.steps) {
+      return cloneSteps(runCache.steps);
+    }
+
     steps = [];
     const arr = [...inputArray];
     switch(algoId) {
@@ -599,14 +759,21 @@ const AlgoEngine = (() => {
       case 20: fibDP(arr);                   break;
       case 21: lcsDP(arr);                   break;
       case 22: hashTable(arr);               break;
+      case 23: dijkstra(arr, extra);         break;
     }
     const cmps  = steps.filter(s => s.phase === 'compare').length;
     const swaps = steps.filter(s => s.phase === 'swap').length;
     dbLog(NAMES[algoId] || 'Unknown', inputArray.length, steps.length, cmps, swaps);
-    return steps;
+
+    runCache.algoId  = algoId;
+    runCache.inputKey = inputKey;
+    runCache.extra   = extra;
+    runCache.steps   = cloneSteps(steps);
+
+    return cloneSteps(runCache.steps);
   }
 
-  function getHistory() { return performanceLogs.slice(0, 100); }
+  function getHistory() { return performanceLogs.slice(0, HISTORY_LIMIT); }
 
   return { run, getHistory, NAMES, CATEGORY };
 })();

@@ -1055,7 +1055,7 @@ static int run_algorithm_impl(int id,const std::string& data_json,int extra){
     g_recorder->clear();
 
     // Parse input
-    std::vector<int> arr;
+    std::vector<iPnt> arr;
     std::string nums;
     for(char c:data_json) if(c!='['&&c!=']'&&c!=' ') nums+=c;
     std::istringstream ss(nums); std::string tok;

@@ -743,6 +743,27 @@ main {
   overflow: hidden;
 }
 
+/* SVG structural viz (linked list, stack, queue, BST, graphs) */
+.bar-chart.struct-viz {
+  display: block;
+  overflow: visible;
+  align-items: stretch;
+  min-height: 260px;
+}
+.bar-chart.struct-viz svg {
+  display: block;
+  width: 100%;
+  min-height: 260px;
+}
+.bar-chart.struct-viz rect.struct-pulse,
+.bar-chart.struct-viz circle.struct-pulse {
+  animation: structPulse 0.55s ease;
+}
+@keyframes structPulse {
+  0%   { stroke: #ff4757; stroke-width: 3.5; filter: drop-shadow(0 0 6px rgba(0,229,255,.55)); }
+  100% { stroke: #00e5ff; stroke-width: 2; filter: none; }
+}
+
 .bar-wrap {
   flex: 1;
   max-width: var(--bar-w);
@@ -1296,10 +1317,10 @@ footer {
     <div class="section-label">Playback</div>
     <div class="speed-row">
       <label for="speed-slider">Delay</label>
-      <input type="range" id="speed-slider" min="10" max="800" value="300" step="10"
-        aria-label="Animation delay in milliseconds"
-        aria-valuemin="10" aria-valuemax="800" aria-valuenow="300">
-      <span class="speed-val" id="speed-val" aria-live="polite" aria-atomic="true">300ms</span>
+      <input type="range" id="speed-slider" min="100" max="2000" value="600" step="50"
+        aria-label="Animation delay in milliseconds — higher is slower"
+        aria-valuemin="100" aria-valuemax="2000" aria-valuenow="600">
+      <span class="speed-val" id="speed-val" aria-live="polite" aria-atomic="true">600ms</span>
     </div>
     <button class="run-btn" id="run-btn" aria-label="Record and play algorithm">
       ▶ Record & Play
@@ -1416,8 +1437,7 @@ footer {
 <!-- ── Scripts ─────────────────────────────────────────────────────────────── -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.47.0/min/vs/loader.min.js"></script>
 <script src="engine.sim.js"></script>
-<!-- QA stress test disabled for production. Enable in console: QAStressTest.runAllTests() -->
-<!-- <script src="qa_stress_test.js"></script> -->
+<script src="qa_stress_test.js"></script>
 <script>
 const SOURCE_MAP = {
   0: {
@@ -1893,7 +1913,7 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && $sidebar.classList.contains('open')) closeSidebar();
 });
 
-const SEARCH_ALGOS  = new Set([9, 10, 11, 16]);
+const SEARCH_ALGOS  = new Set([9, 10, 11, 16, 23]);
 const $currentCat   = document.getElementById('current-cat');
 const CAT_LABEL     = ['sort','sort','sort','sort','sort','sort','sort','sort','sort',
                        'search','search','search','ds','ds','ds','tree','tree',
@@ -1964,8 +1984,14 @@ $tabs.forEach((tab, i) => {
   });
 });
 
+function getPlaybackDelayMs() {
+  const ms = parseInt($speedSlider.value, 10);
+  if (!Number.isFinite(ms)) return 600;
+  return Math.min(2000, Math.max(100, ms));
+}
+
 $speedSlider.addEventListener('input', () => {
-  $speedVal.textContent = $speedSlider.value + 'ms';
+  $speedVal.textContent = getPlaybackDelayMs() + 'ms';
 });
 
 $genBtn.addEventListener('click', () => {
@@ -1978,10 +2004,13 @@ $genBtn.addEventListener('click', () => {
 });
 
 function parseArray() {
-  return $arrayInput.value
-    .split(',')
-    .map(s => parseInt(s.trim(), 10))
-    .filter(n => !isNaN(n));
+  const sanitized = $arrayInput.value
+    .replace(/^\s*\[+/, '')
+    .replace(/\]+\s*$/, '')
+    .replace(/[\[\]]/g, ' ')
+    .trim();
+  const tokens = sanitized.split(/[\s,;]+/).filter(t => t.length > 0);
+  return tokens.map(t => parseInt(t, 10));
 }
 
 function validateInput(arr, algoId) {
@@ -1989,9 +2018,11 @@ function validateInput(arr, algoId) {
     return 'Enter at least one number.';
   if (arr.some(isNaN))
     return 'Invalid characters detected — numbers only, comma-separated.';
-  const isGraph = algoId >= 17 && algoId <= 18;
+  const isGraph = (algoId >= 17 && algoId <= 18) || algoId === 23;
   const isDP    = algoId >= 20 && algoId <= 21;
   const limit   = isGraph ? 20 : isDP ? 30 : 60;
+  if (algoId === 23 && arr.length % 3 !== 0)
+    return 'Dijkstra needs edge triplets: u, weight, v (comma-separated, count must be a multiple of 3).';
   if (arr.length > limit)
     return `Max ${limit} elements for this algorithm (you entered ${arr.length}).`;
   if (arr.some(v => v < 0) && (algoId === 7 || algoId === 8))
@@ -2001,9 +2032,8 @@ function validateInput(arr, algoId) {
 
 const STREAM_CHUNK = 1;
 
-function* stepGenerator(algoId, inputArray, extra) {
-  const allSteps = AlgoEngine.run(algoId, inputArray, extra);
-  for (const step of allSteps) {
+function* stepGenerator(cachedSteps) {
+  for (const step of cachedSteps) {
     yield step;
   }
 }
@@ -2030,12 +2060,14 @@ function startStreamingPlayback(gen) {
       $curStep.textContent = steps.length;
       renderStep(currentStep);
     }
-    playTimer = setTimeout(pumpChunk, parseInt($speedSlider.value, 10));
+    playTimer = setTimeout(pumpChunk, getPlaybackDelayMs());
   }
   pumpChunk();
 }
 
 $runBtn.addEventListener('click', () => {
+  if (DIJKSTRA_IDS.has(selectedAlgo) && !guardDijkstraExecution()) return;
+
   const arr = parseArray();
   const err = validateInput(arr, selectedAlgo);
   if (err) { alert(err); return; }
@@ -2046,28 +2078,25 @@ $runBtn.addEventListener('click', () => {
   currentStep = 0;
   maxVal      = Math.max(...arr, 1);
 
-  const dryRun = AlgoEngine.run(selectedAlgo, arr,
-                   parseInt($targetInput.value, 10) || 0);
-  const cmps  = dryRun.filter(s => s.phase === 'compare').length;
-  const swaps = dryRun.filter(s => s.phase === 'swap').length;
-  $mSteps.textContent = dryRun.length;
+  const extra = parseInt($targetInput.value, 10) || 0;
+  const cachedSteps = AlgoEngine.run(selectedAlgo, arr, extra);
+  const cmps  = cachedSteps.filter(s => s.phase === 'compare').length;
+  const swaps = cachedSteps.filter(s => s.phase === 'swap').length;
+  $mSteps.textContent = cachedSteps.length;
   $mCmps.textContent  = cmps;
   $mSwaps.textContent = swaps;
   $mSize.textContent  = arr.length;
-  $totSteps.textContent = dryRun.length;
+  $totSteps.textContent = cachedSteps.length;
 
-  $emptyState.style.display = 'none';
-  $vizContent.style.display = 'flex';
-  $curAlgo.textContent      = AlgoEngine.NAMES[selectedAlgo] ?? '—';
-  $curStep.textContent      = '0';
+  $curAlgo.textContent = AlgoEngine.NAMES[selectedAlgo] ?? '—';
+  $curStep.textContent  = '0';
 
   playing = false;
   paused  = false;
 
-  const gen = stepGenerator(selectedAlgo, arr,
-                parseInt($targetInput.value, 10) || 0);
+  const gen = stepGenerator(cachedSteps);
   setControls(true);
-  startStreamingPlayback(gen);
+  whenVizPanelReady(() => startStreamingPlayback(gen));
 });
 
 const MONACO_DECO_CLASS = {
@@ -2124,6 +2153,115 @@ const DS_IDS       = new Set([12, 13, 14]);
 const TREE_IDS     = new Set([15, 16]);
 const GRAPH_IDS    = new Set([17, 18]);
 const DIJKSTRA_IDS = new Set([23]);
+const STRUCT_IDS   = new Set([12, 13, 14, 15, 16, 17, 18, 23]);
+
+let _structReflowPending = null;
+
+function getStructCanvasSize() {
+  const rect = $barChart.getBoundingClientRect();
+  const W = Math.max(Math.floor(rect.width) || 0, $barChart.clientWidth || 0, 560);
+  const H = Math.max(Math.floor(rect.height) || 0, $barChart.clientHeight || 0, 300);
+  return { W, H };
+}
+
+function attachStructSvg(W, H) {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('width', '100%');
+  svg.setAttribute('height', '100%');
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.style.overflow = 'visible';
+  $barChart.appendChild(svg);
+  return svg;
+}
+
+function structPulseClass(op) {
+  return (op === 'push' || op === 'pop' || op === 'peek' ||
+          op === 'enqueue' || op === 'dequeue' || op === 'insert') ? 'struct-pulse' : '';
+}
+
+function scheduleStructReflow(idx) {
+  if (_structReflowPending !== null) return;
+  _structReflowPending = idx;
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      const i = _structReflowPending;
+      _structReflowPending = null;
+      if (steps.length && i != null) renderStep(i);
+    });
+  });
+}
+
+function renderStructMessage(title, subtitle) {
+  prepareStructCanvas();
+  const { W, H } = getStructCanvasSize();
+  const svg = attachStructSvg(W, H);
+  const t1 = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  t1.setAttribute('x', W / 2);
+  t1.setAttribute('y', H / 2 - 8);
+  t1.setAttribute('text-anchor', 'middle');
+  t1.setAttribute('fill', '#c8d4e8');
+  t1.setAttribute('font-size', '14');
+  t1.setAttribute('font-family', 'Share Tech Mono,monospace');
+  t1.textContent = title;
+  svg.appendChild(t1);
+  if (subtitle) {
+    const t2 = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    t2.setAttribute('x', W / 2);
+    t2.setAttribute('y', H / 2 + 14);
+    t2.setAttribute('text-anchor', 'middle');
+    t2.setAttribute('fill', '#5a6a85');
+    t2.setAttribute('font-size', '11');
+    t2.setAttribute('font-family', 'Share Tech Mono,monospace');
+    t2.textContent = subtitle;
+    svg.appendChild(t2);
+  }
+}
+
+function whenVizPanelReady(cb) {
+  $emptyState.style.display = 'none';
+  $vizContent.style.display = 'flex';
+  requestAnimationFrame(() => requestAnimationFrame(cb));
+}
+
+function isGraphLayoutReady() {
+  if (!$barChart || !$vizContent) return false;
+  if (!document.getElementById('viz-content') || !document.getElementById('bar-chart')) return false;
+  return true;
+}
+
+function guardDijkstraExecution() {
+  if (!isGraphLayoutReady()) {
+    alert('Visualization layout is not initialized. Reload the page and try again.');
+    return false;
+  }
+  return true;
+}
+
+function guardDijkstraRender() {
+  return isGraphLayoutReady();
+}
+
+/** Parse step.extra — engine stores JSON string; tolerate pre-parsed objects. */
+function parseStepExtra(s) {
+  if (!s || s.extra == null || s.extra === '') return null;
+  if (typeof s.extra === 'object') return s.extra;
+  if (typeof s.extra === 'string') {
+    try { return JSON.parse(s.extra); } catch (_) { return null; }
+  }
+  return null;
+}
+
+function prepareStructCanvas() {
+  $barChart.classList.add('struct-viz');
+  $barChart.style.display = 'block';
+  $barChart.innerHTML = '';
+}
+
+function resetBarCanvas() {
+  $barChart.classList.remove('struct-viz');
+  $barChart.style.display = 'flex';
+  $barChart.innerHTML = '';
+}
 
 function renderStep(idx) {
   if (!steps.length) return;
@@ -2134,10 +2272,25 @@ function renderStep(idx) {
   $progressFill.style.width = pct + '%';
   $curStep.textContent = idx + 1;
 
+  if (STRUCT_IDS.has(selectedAlgo)) {
+    const { W } = getStructCanvasSize();
+    if (W < 80) {
+      scheduleStructReflow(idx);
+    }
+  }
+
   if (DS_IDS.has(selectedAlgo))          renderDS(s);
   else if (TREE_IDS.has(selectedAlgo))   renderTree(s);
   else if (GRAPH_IDS.has(selectedAlgo))  renderGraph(s);
-  else if (DIJKSTRA_IDS.has(selectedAlgo)) renderDijkstra(s);
+  else if (DIJKSTRA_IDS.has(selectedAlgo)) {
+    if (!guardDijkstraRender()) {
+      alert('Dijkstra graph canvas is not ready. Run the algorithm again after the panel opens.');
+      resetBarCanvas();
+      renderBars(s);
+    } else {
+      renderDijkstra(s);
+    }
+  }
   else                                   renderBars(s);
 
   $actionLog.innerHTML = `
@@ -2149,8 +2302,7 @@ function renderStep(idx) {
 
 function renderBars(s) {
   const chartH = $barChart.clientHeight || 300;
-  $barChart.innerHTML = '';
-  $barChart.style.display = 'flex';
+  resetBarCanvas();
 
   s.array.forEach((val, i) => {
     const wrap = document.createElement('div');
@@ -2177,21 +2329,19 @@ function renderBars(s) {
 }
 
 function renderDS(s) {
-  $barChart.style.display = 'block';
-  $barChart.innerHTML = '';
+  const data = parseStepExtra(s);
+  if (!data || !['ll', 'stack', 'queue'].includes(data.type)) {
+    if (DS_IDS.has(selectedAlgo)) {
+      renderStructMessage('Structure data missing for this step', s.action || '');
+      return;
+    }
+    resetBarCanvas();
+    return renderBars(s);
+  }
+  prepareStructCanvas();
 
-  let data = null;
-  try { data = s.extra ? JSON.parse(s.extra) : null; } catch(e) {}
-  if (!data) { $barChart.style.display = 'flex'; return renderBars(s); }
-
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('width', '100%');
-  svg.setAttribute('height', '100%');
-  svg.style.overflow = 'visible';
-  $barChart.appendChild(svg);
-
-  const W = $barChart.clientWidth  || 600;
-  const H = $barChart.clientHeight || 260;
+  const { W, H } = getStructCanvasSize();
+  const svg = attachStructSvg(W, H);
   const BW = 64, BH = 36, GAP = 48;
   const startX = 24, cy = H / 2;
 
@@ -2275,68 +2425,98 @@ function renderDS(s) {
     }
 
   } else if (data.type === 'stack') {
-    const items = data.items;
+    const items = data.items || [];
     const SBH = 34, SPAD = 4;
-    const sx = W/2 - BW/2;
+    const sx = W / 2 - BW / 2;
+    const baseY = H - 48;
+    const pulse = structPulseClass(data.op);
+
+    const base = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    base.setAttribute('x1', sx - 12);
+    base.setAttribute('y1', baseY);
+    base.setAttribute('x2', sx + BW + 12);
+    base.setAttribute('y2', baseY);
+    base.setAttribute('stroke', '#3a4358');
+    base.setAttribute('stroke-width', '2');
+    svg.appendChild(base);
+
     items.forEach((val, i) => {
       const isTop = i === items.length - 1;
-      const y = H - BH - (i * (SBH + SPAD)) - 20;
+      const isPopping = data.popping != null && val === data.popping;
+      const y = baseY - BH - (i * (SBH + SPAD)) - 8;
 
-      const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
-      rect.setAttribute('x', sx); rect.setAttribute('y', y);
-      rect.setAttribute('width', BW); rect.setAttribute('height', SBH);
+      const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      rect.setAttribute('x', sx);
+      rect.setAttribute('y', y);
+      rect.setAttribute('width', BW);
+      rect.setAttribute('height', SBH);
       rect.setAttribute('rx', 4);
-      rect.setAttribute('fill', isTop ? 'rgba(0,229,255,.18)' : 'rgba(0,229,255,.06)');
-      rect.setAttribute('stroke', isTop ? '#00e5ff' : '#1e2535');
-      rect.setAttribute('stroke-width', isTop ? 2 : 1);
+      rect.setAttribute('fill',
+        isPopping ? 'rgba(255,71,87,.28)' :
+        isTop     ? 'rgba(0,229,255,.18)' : 'rgba(0,229,255,.06)');
+      rect.setAttribute('stroke',
+        isPopping ? '#ff4757' : isTop ? '#00e5ff' : '#1e2535');
+      rect.setAttribute('stroke-width', (isTop || isPopping) ? 2 : 1);
+      if (isTop || isPopping) rect.setAttribute('class', pulse);
       svg.appendChild(rect);
 
-      const txt = document.createElementNS('http://www.w3.org/2000/svg','text');
-      txt.setAttribute('x', sx + BW/2); txt.setAttribute('y', y + SBH/2 + 5);
-      txt.setAttribute('text-anchor','middle');
-      txt.setAttribute('fill', isTop ? '#00e5ff' : '#c8d4e8');
-      txt.setAttribute('font-family','Share Tech Mono,monospace');
-      txt.setAttribute('font-size','13');
+      const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      txt.setAttribute('x', sx + BW / 2);
+      txt.setAttribute('y', y + SBH / 2 + 5);
+      txt.setAttribute('text-anchor', 'middle');
+      txt.setAttribute('fill', isPopping ? '#ff4757' : isTop ? '#00e5ff' : '#c8d4e8');
+      txt.setAttribute('font-family', 'Share Tech Mono,monospace');
+      txt.setAttribute('font-size', '13');
+      txt.setAttribute('font-weight', isTop || isPopping ? 'bold' : 'normal');
       txt.textContent = val;
       svg.appendChild(txt);
 
       if (isTop) {
-        const tl = document.createElementNS('http://www.w3.org/2000/svg','text');
-        tl.setAttribute('x', sx + BW + 8); tl.setAttribute('y', y + SBH/2 + 5);
-        tl.setAttribute('fill','#00e5ff'); tl.setAttribute('font-size','9');
-        tl.setAttribute('font-family','Share Tech Mono,monospace');
-        tl.textContent = '← TOP';
+        const tl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        tl.setAttribute('x', sx + BW + 8);
+        tl.setAttribute('y', y + SBH / 2 + 5);
+        tl.setAttribute('fill', isPopping ? '#ff4757' : '#00e5ff');
+        tl.setAttribute('font-size', '9');
+        tl.setAttribute('font-family', 'Share Tech Mono,monospace');
+        tl.textContent = data.op === 'pop' ? '← POP' : '← TOP';
         svg.appendChild(tl);
       }
     });
 
     if (items.length === 0) {
-      const et = document.createElementNS('http://www.w3.org/2000/svg','text');
-      et.setAttribute('x', W/2); et.setAttribute('y', H/2);
-      et.setAttribute('text-anchor','middle');
-      et.setAttribute('fill','#3a4358'); et.setAttribute('font-size','13');
-      et.setAttribute('font-family','Share Tech Mono,monospace');
-      et.textContent = '[ empty stack ]';
+      const done = s.phase === 'done' || data.op === 'empty';
+      const et = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      et.setAttribute('x', W / 2);
+      et.setAttribute('y', H / 2);
+      et.setAttribute('text-anchor', 'middle');
+      et.setAttribute('fill', done ? '#2ecc71' : '#5a6a85');
+      et.setAttribute('font-size', '14');
+      et.setAttribute('font-family', 'Share Tech Mono,monospace');
+      et.textContent = done ? '✓ Stack empty — all values popped' : '[ empty stack ]';
       svg.appendChild(et);
     }
 
   } else if (data.type === 'queue') {
-    const items = data.items;
+    const items = data.items || [];
+    const pulse = structPulseClass(data.op);
     items.forEach((val, i) => {
       const x = startX + i * (BW + GAP);
       const isFront = i === 0;
       const isRear  = i === items.length - 1;
+      const isLeaving = data.leaving != null && val === data.leaving;
 
       const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
       rect.setAttribute('x', x); rect.setAttribute('y', cy - BH/2);
       rect.setAttribute('width', BW); rect.setAttribute('height', BH);
       rect.setAttribute('rx', 4);
       rect.setAttribute('fill',
-        isFront ? 'rgba(255,71,87,.18)' :
-        isRear  ? 'rgba(168,85,247,.18)' : 'rgba(0,229,255,.06)');
+        isLeaving ? 'rgba(255,71,87,.28)' :
+        isFront   ? 'rgba(255,71,87,.18)' :
+        isRear    ? 'rgba(168,85,247,.18)' : 'rgba(0,229,255,.06)');
       rect.setAttribute('stroke',
-        isFront ? '#ff4757' : isRear ? '#a855f7' : '#1e2535');
-      rect.setAttribute('stroke-width', (isFront || isRear) ? 2 : 1);
+        isLeaving ? '#ff4757' : isFront ? '#ff4757' : isRear ? '#a855f7' : '#1e2535');
+      rect.setAttribute('stroke-width', (isFront || isRear || isLeaving) ? 2 : 1);
+      if (isFront || isLeaving) rect.setAttribute('class', pulse);
       svg.appendChild(rect);
 
       const txt = document.createElementNS('http://www.w3.org/2000/svg','text');
@@ -2369,12 +2549,14 @@ function renderDS(s) {
     });
 
     if (items.length === 0) {
+      const done = s.phase === 'done' || data.op === 'empty';
       const et = document.createElementNS('http://www.w3.org/2000/svg','text');
       et.setAttribute('x', W/2); et.setAttribute('y', H/2);
       et.setAttribute('text-anchor','middle');
-      et.setAttribute('fill','#3a4358'); et.setAttribute('font-size','13');
+      et.setAttribute('fill', done ? '#2ecc71' : '#5a6a85');
+      et.setAttribute('font-size','14');
       et.setAttribute('font-family','Share Tech Mono,monospace');
-      et.textContent = '[ empty queue ]';
+      et.textContent = done ? '✓ Queue empty — all values dequeued' : '[ empty queue ]';
       svg.appendChild(et);
     }
   }
@@ -2388,27 +2570,46 @@ function renderDS(s) {
 }
 
 function renderTree(s) {
-  $barChart.style.display = 'block';
-  $barChart.innerHTML = '';
-
-  let data = null;
-  try { data = s.extra ? JSON.parse(s.extra) : null; } catch(e) {}
-  if (!data || !data.nodes || !data.nodes.length) {
-    $barChart.style.display = 'flex';
+  const data = parseStepExtra(s);
+  if (!data || data.type !== 'bst') {
+    if (TREE_IDS.has(selectedAlgo)) {
+      renderStructMessage('Tree data missing for this step', s.action || '');
+      return;
+    }
+    resetBarCanvas();
     return renderBars(s);
   }
 
-  const W = $barChart.clientWidth  || 600;
-  const H = $barChart.clientHeight || 300;
+  prepareStructCanvas();
+
+  const { W, H } = getStructCanvasSize();
   const R = 20;
   const LEVEL_H = 70;
+
+  if (!data.nodes || !data.nodes.length) {
+    const svg = attachStructSvg(W, H);
+    const et = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    et.setAttribute('x', W / 2);
+    et.setAttribute('y', H / 2);
+    et.setAttribute('text-anchor', 'middle');
+    et.setAttribute('fill', '#5a6a85');
+    et.setAttribute('font-size', '13');
+    et.setAttribute('font-family', 'Share Tech Mono,monospace');
+    et.textContent = '[ empty BST — values will appear as nodes ]';
+    svg.appendChild(et);
+    $barChart.appendChild(svg);
+    return;
+  }
 
   const byId = {};
   data.nodes.forEach(n => { byId[n.id] = n; });
 
   const childIds = new Set(data.nodes.flatMap(n => [n.left, n.right]).filter(x => x !== -1));
   const root = data.nodes.find(n => !childIds.has(n.id));
-  if (!root) { $barChart.style.display='flex'; return renderBars(s); }
+  if (!root) {
+    resetBarCanvas();
+    return renderBars(s);
+  }
 
   let xCounter = 0;
   const pos = {};
@@ -2425,9 +2626,7 @@ function renderTree(s) {
   const xScale = Math.min((W - 60) / Math.max(totalNodes, 1), 60);
   const xOffset = (W - totalNodes * xScale) / 2 + xScale / 2;
 
-  const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
-  svg.setAttribute('width','100%'); svg.setAttribute('height','100%');
-  $barChart.appendChild(svg);
+  const svg = attachStructSvg(W, H);
 
   data.nodes.forEach(n => {
     const p = pos[n.id];
@@ -2473,22 +2672,32 @@ function renderTree(s) {
   });
 }
 
+function graphEdgePairs(edges) {
+  if (!Array.isArray(edges)) return [];
+  return edges.map(e => Array.isArray(e) ? e : [e.u, e.v]);
+}
+
 function renderGraph(s) {
-  $barChart.style.display = 'block';
-  $barChart.innerHTML = '';
+  const data = parseStepExtra(s);
+  const edgePairs = graphEdgePairs(data?.edges);
+  if (!data || !edgePairs.length) {
+    if (GRAPH_IDS.has(selectedAlgo)) {
+      renderStructMessage('Graph needs edge pairs', 'Example: 1,2, 2,3, 3,4');
+      return;
+    }
+    resetBarCanvas();
+    return renderBars(s);
+  }
 
-  let data = null;
-  try { data = s.extra ? JSON.parse(s.extra) : null; } catch(e) {}
-  if (!data || !data.edges) { $barChart.style.display = 'flex'; return renderBars(s); }
+  prepareStructCanvas();
 
-  const W = $barChart.clientWidth  || 600;
-  const H = $barChart.clientHeight || 300;
+  const { W, H } = getStructCanvasSize();
   const R = 22;
-  const CR = Math.min(W, H) / 2 - R - 20;
+  const CR = Math.max(60, Math.min(W, H) / 2 - R - 20);
   const cx = W / 2, cy = H / 2;
 
   const nodeSet = new Set();
-  data.edges.forEach(([u,v]) => { nodeSet.add(u); nodeSet.add(v); });
+  edgePairs.forEach(([u, v]) => { nodeSet.add(u); nodeSet.add(v); });
   const nodes = Array.from(nodeSet).sort((a,b)=>a-b);
   const n = nodes.length;
   const angleStep = (2 * Math.PI) / Math.max(n, 1);
@@ -2502,11 +2711,9 @@ function renderGraph(s) {
   const visitedSet   = new Set(data.visited  || []);
   const frontierSet  = new Set(data.frontier || []);
 
-  const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
-  svg.setAttribute('width','100%'); svg.setAttribute('height','100%');
-  $barChart.appendChild(svg);
+  const svg = attachStructSvg(W, H);
 
-  data.edges.forEach(([u, v]) => {
+  edgePairs.forEach(([u, v]) => {
     const pu = nodePos[u], pv = nodePos[v];
     if (!pu || !pv) return;
     const bothVisited = visitedSet.has(u) && visitedSet.has(v);
@@ -2535,15 +2742,17 @@ function renderGraph(s) {
       isFrontier ? '#ffd166' :
       isVisited  ? '#00e5ff' : '#3a4358');
     circle.setAttribute('stroke-width', isCurrent ? 3 : 1.5);
+    if (isCurrent) circle.setAttribute('class', 'struct-pulse');
     svg.appendChild(circle);
 
     const txt = document.createElementNS('http://www.w3.org/2000/svg','text');
-    txt.setAttribute('x', p.x); txt.setAttribute('y', p.y + 4);
+    txt.setAttribute('x', p.x); txt.setAttribute('y', p.y + 5);
     txt.setAttribute('text-anchor','middle');
-    txt.setAttribute('fill', isCurrent ? '#ff4757' : isVisited ? '#00e5ff' : '#c8d4e8');
+    txt.setAttribute('fill', isCurrent ? '#ff4757' : isVisited ? '#00e5ff' : '#e8eef8');
     txt.setAttribute('font-family','Share Tech Mono,monospace');
-    txt.setAttribute('font-size','12');
-    txt.textContent = id;
+    txt.setAttribute('font-size','13');
+    txt.setAttribute('font-weight','bold');
+    txt.textContent = String(id);
     svg.appendChild(txt);
   });
 
@@ -2563,17 +2772,20 @@ function renderGraph(s) {
 }
 
 function renderDijkstra(s) {
-  $barChart.style.display = 'block';
-  $barChart.innerHTML = '';
+  if (!guardDijkstraRender()) {
+    resetBarCanvas();
+    return renderBars(s);
+  }
+  const data = parseStepExtra(s);
+  if (!data || !data.edges || !data.edges.length) {
+    resetBarCanvas();
+    return renderBars(s);
+  }
+  prepareStructCanvas();
 
-  let data = null;
-  try { data = s.extra ? JSON.parse(s.extra) : null; } catch(e) {}
-  if (!data || !data.edges) { $barChart.style.display = 'flex'; return renderBars(s); }
-
-  const W = $barChart.clientWidth  || 600;
-  const H = $barChart.clientHeight || 300;
+  const { W, H } = getStructCanvasSize();
   const R = 22;
-  const CR = Math.min(W, H) / 2 - R - 32;
+  const CR = Math.max(60, Math.min(W, H) / 2 - R - 32);
   const cxC = W / 2, cyC = H / 2;
 
   const nodeSet = new Set();
@@ -2603,9 +2815,7 @@ function renderDijkstra(s) {
     }
   }
 
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('width', '100%'); svg.setAttribute('height', '100%');
-  $barChart.appendChild(svg);
+  const svg = attachStructSvg(W, H);
 
   const drawnEdges = new Set();
   data.edges.forEach(e => {
@@ -2730,7 +2940,7 @@ function tick() {
   }
   renderStep(currentStep);
   currentStep++;
-  playTimer = setTimeout(tick, parseInt($speedSlider.value, 10));
+  playTimer = setTimeout(tick, getPlaybackDelayMs());
 }
 
 function stopPlayback() {
