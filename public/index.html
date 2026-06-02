@@ -8,24 +8,18 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
 <style>
-/* ═══════════════════════════════════════════════════════════════════════════
-   DESIGN TOKENS — single source of truth
-   All values reference these variables; nothing is hardcoded in components.
-   ═══════════════════════════════════════════════════════════════════════════ */
+/* ── DESIGN TOKENS ── */
 :root {
-  /* Surface hierarchy */
-  --surface-0:   #070910;   /* deepest bg */
-  --surface-1:   #0a0c10;   /* page bg */
-  --surface-2:   #0f1218;   /* panel / sidebar */
-  --surface-3:   #131821;   /* card / input bg */
-  --surface-4:   #1a2235;   /* hover surface */
+  --surface-0:   #070910;
+  --surface-1:   #0a0c10;
+  --surface-2:   #0f1218;
+  --surface-3:   #131821;
+  --surface-4:   #1a2235;
 
-  /* Borders */
   --border-dim:  #161c2a;
   --border:      #1e2535;
   --border-hi:   #2a3650;
 
-  /* Semantic colours */
   --accent:      #00e5ff;
   --accent-dim:  rgba(0,229,255,.08);
   --accent-glow: rgba(0,229,255,.25);
@@ -39,18 +33,15 @@
   --purple-dim:  rgba(168,85,247,.10);
   --blue:        #3b82f6;
 
-  /* Text scale */
   --text-hi:     #ffffff;
   --text:        #c8d4e8;
   --text-mid:    #8a9ab5;
   --text-dim:    #5a6a85;
   --text-muted:  #3a4358;
 
-  /* Typography */
   --mono: 'Share Tech Mono', 'Courier New', monospace;
   --sans: 'Syne', system-ui, sans-serif;
 
-  /* Spacing (4px base) */
   --sp-1: 4px;
   --sp-2: 8px;
   --sp-3: 12px;
@@ -59,19 +50,14 @@
   --sp-6: 24px;
   --sp-8: 32px;
 
-  /* Radius */
   --r-sm: 4px;
   --r-md: 6px;
   --r-lg: 8px;
   --r-xl: 12px;
 
-  /* Touch target minimum (44px per Apple HIG / 48px per MD) */
   --touch: 44px;
-
-  /* Sidebar width */
   --sidebar-w: 280px;
 
-  /* Animation */
   --dur-fast:   120ms;
   --dur-mid:    200ms;
   --dur-slow:   300ms;
@@ -79,14 +65,11 @@
   --ease-out:   cubic-bezier(0, 0, .2, 1);
   --ease-spring:cubic-bezier(.34, 1.56, .64, 1);
 
-  /* Bar chart */
   --bar-w: clamp(8px, 2vw, 24px);
 }
 
-/* ── Reset ───────────────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-/* Skip link — keyboard / screen-reader navigation (accessibility P1) */
 .skip-link {
   position: fixed;
   top: -100%;
@@ -104,7 +87,6 @@
 }
 .skip-link:focus { top: var(--sp-4); }
 
-/* ── Base ────────────────────────────────────────────────────────────────── */
 html { font-size: 16px; scroll-behavior: smooth; }
 
 body {
@@ -114,11 +96,9 @@ body {
   font-family: var(--sans);
   line-height: 1.5;
   overflow-x: hidden;
-  /* Reduce 300ms tap delay on mobile */
   touch-action: manipulation;
 }
 
-/* ── Scanline texture (non-essential — hidden when motion reduced) ────────── */
 @media (prefers-reduced-motion: no-preference) {
   body::before {
     content: '';
@@ -133,24 +113,17 @@ body {
   }
 }
 
-/* ── Global interactive focus ring (accessibility P1) ───────────────────── */
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
   border-radius: var(--r-sm);
 }
 
-/* ── Custom scrollbar (sidebar + panels) ─────────────────────────────────── */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
-/* ══════════════════════════════════════════════════════════════════════════
-   LAYOUT — mobile-first grid
-   Mobile:  single column — header / main / sidebar (drawer) / footer
-   Tablet+: sidebar pinned left, main fills remaining width
-   ══════════════════════════════════════════════════════════════════════════ */
 .app {
   display: grid;
   grid-template-rows: auto 1fr auto;
@@ -176,7 +149,6 @@ body {
   :root { --sidebar-w: 300px; }
 }
 
-/* ── Header ──────────────────────────────────────────────────────────────── */
 header {
   grid-area: header;
   display: flex;
@@ -233,7 +205,6 @@ header {
   white-space: nowrap;
 }
 
-/* Mobile: hide subtitle to save space */
 @media (max-width: 479px) { .logo span { display: none; } }
 
 .header-right {
@@ -244,7 +215,7 @@ header {
 }
 
 .header-status {
-  display: none; /* hidden on mobile — too cramped */
+  display: none;
   gap: var(--sp-5);
   font-family: var(--mono);
   font-size: .68rem;
@@ -269,7 +240,6 @@ header {
 .dot.live { background: var(--green); box-shadow: 0 0 6px var(--green); }
 .dot.warn { background: var(--gold); }
 
-/* Mobile sidebar toggle button */
 .sidebar-toggle {
   display: flex;
   align-items: center;
@@ -290,7 +260,6 @@ header {
 
 @media (min-width: 768px) { .sidebar-toggle { display: none; } }
 
-/* ── Sidebar ──────────────────────────────────────────────────────────────── */
 aside {
   grid-area: sidebar;
   background: var(--surface-2);
@@ -299,7 +268,6 @@ aside {
   flex-direction: column;
   overflow-y: auto;
   overflow-x: hidden;
-  /* Mobile: off-canvas drawer */
   position: fixed;
   inset: 56px 0 0 0;
   z-index: 90;
@@ -311,7 +279,6 @@ aside {
 
 aside.open { transform: translateX(0); }
 
-/* Mobile overlay scrim */
 .sidebar-scrim {
   position: fixed;
   inset: 56px 0 0 0;
@@ -340,6 +307,10 @@ aside.open { transform: translateX(0); }
   flex-shrink: 0;
 }
 
+.panel-section.flush {
+  padding: 0;
+}
+
 .section-label {
   font-size: .58rem;
   font-family: var(--mono);
@@ -352,7 +323,70 @@ aside.open { transform: translateX(0); }
   gap: var(--sp-2);
 }
 
-/* ── Algorithm selector ──────────────────────────────────────────────────── */
+.sub-section-label {
+  font-size: .55rem;
+  font-family: var(--mono);
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+  margin-top: 14px;
+}
+.sub-section-label.first {
+  margin-top: 0;
+}
+
+.algo-group {
+  border-bottom: 1px solid var(--border-dim);
+  transition: background var(--dur-fast);
+}
+.algo-group[open] {
+  background: rgba(255, 255, 255, 0.01);
+}
+.group-header {
+  display: flex;
+  align-items: center;
+  padding: var(--sp-3) var(--sp-5);
+  font-family: var(--mono);
+  font-size: .72rem;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: var(--text-mid);
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  list-style: none;
+  min-height: var(--touch);
+  transition: color var(--dur-fast), background var(--dur-fast);
+}
+.group-header::-webkit-details-marker { display: none; }
+.group-header:hover {
+  color: var(--accent);
+  background: rgba(0, 229, 255, 0.02);
+}
+.group-header::after {
+  content: '▼';
+  font-size: .55rem;
+  color: var(--text-muted);
+  margin-left: auto;
+  transition: transform var(--dur-fast) var(--ease), color var(--dur-fast);
+}
+.algo-group[open] .group-header::after {
+  transform: rotate(-180deg);
+  color: var(--accent);
+}
+.group-content {
+  padding: 0 var(--sp-5) var(--sp-4) var(--sp-5);
+}
+.group-count {
+  font-size: .58rem;
+  color: var(--text-dim);
+  background: var(--surface-3);
+  padding: 2px 6px;
+  border-radius: var(--r-sm);
+  margin-left: var(--sp-3);
+}
+
 .algo-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -360,7 +394,6 @@ aside.open { transform: translateX(0); }
 }
 
 .algo-btn {
-  /* Touch target ≥44px */
   min-height: var(--touch);
   background: transparent;
   border: 1px solid var(--border);
@@ -378,7 +411,6 @@ aside.open { transform: translateX(0); }
     background   var(--dur-fast) var(--ease),
     box-shadow   var(--dur-fast) var(--ease);
   position: relative;
-  /* Keyboard focus ring handled by :focus-visible global rule */
 }
 
 .algo-btn:hover {
@@ -408,7 +440,6 @@ aside.open { transform: translateX(0); }
 }
 .algo-btn.active .algo-tag { color: var(--accent); opacity: .65; }
 
-/* Category badges on algorithm sections */
 .algo-category {
   font-size: .55rem;
   font-family: var(--mono);
@@ -424,7 +455,6 @@ aside.open { transform: translateX(0); }
 .cat-graph  { background: rgba(59,130,246,.1);  color: var(--blue); }
 .cat-dp     { background: var(--green-dim);     color: var(--green); }
 
-/* ── Inputs ──────────────────────────────────────────────────────────────── */
 .input-group { margin-bottom: var(--sp-3); }
 
 .input-group label {
@@ -448,10 +478,9 @@ aside.open { transform: translateX(0); }
   font-family: var(--mono);
   font-size: .85rem;
   padding: var(--sp-2) var(--sp-3);
-  /* No resize on mobile — it breaks layout */
   resize: none;
   transition: border-color var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
-  /* Prevent zoom on iOS (font-size ≥16px required but we use tokens) */
+  text-size-adjust: 100%;
   -webkit-text-size-adjust: 100%;
 }
 
@@ -461,14 +490,23 @@ aside.open { transform: translateX(0); }
 .input-group input:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-glow);
-  /* Remove browser outline — we supply our own */
   outline: none;
 }
 
-.target-row { display: none; }
-.target-row.visible { display: block; }
+#array-hint {
+  font-size: .58rem;
+  color: var(--text-dim);
+  font-family: var(--mono);
+  margin-top: 4px;
+  display: block;
+}
 
-/* ── Speed control ───────────────────────────────────────────────────────── */
+.target-row { display: none; }
+.target-row.visible { 
+  display: block; 
+  margin-top: 10px;
+}
+
 .speed-row {
   display: flex;
   align-items: center;
@@ -522,7 +560,6 @@ input[type="range"]:focus::-webkit-slider-thumb { transform: scale(1.2); }
   white-space: nowrap;
 }
 
-/* ── Run button ──────────────────────────────────────────────────────────── */
 .run-btn {
   width: 100%;
   min-height: var(--touch);
@@ -555,8 +592,12 @@ input[type="range"]:focus::-webkit-slider-thumb { transform: scale(1.2); }
   box-shadow: none;
 }
 
-/* ── Playback buttons ────────────────────────────────────────────────────── */
-.playback-row { display: flex; gap: var(--sp-2); margin-bottom: var(--sp-3); }
+.playback-row { 
+  display: flex; 
+  gap: var(--sp-2); 
+  margin-bottom: var(--sp-3); 
+  margin-top: var(--sp-2);
+}
 
 .pb-btn {
   flex: 1;
@@ -578,7 +619,6 @@ input[type="range"]:focus::-webkit-slider-thumb { transform: scale(1.2); }
 .pb-btn:active { transform: scale(.96); }
 .pb-btn:disabled { opacity: .28; cursor: not-allowed; }
 
-/* ── Metrics grid ────────────────────────────────────────────────────────── */
 .metrics-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -611,7 +651,6 @@ input[type="range"]:focus::-webkit-slider-thumb { transform: scale(1.2); }
   text-transform: uppercase;
 }
 
-/* ── Generate button ─────────────────────────────────────────────────────── */
 .gen-btn {
   background: transparent;
   border: 1px dashed var(--border-hi);
@@ -630,9 +669,6 @@ input[type="range"]:focus::-webkit-slider-thumb { transform: scale(1.2); }
 .gen-btn:hover { border-color: var(--gold); color: var(--gold); }
 .gen-btn:active { transform: scale(.98); }
 
-/* ══════════════════════════════════════════════════════════════════════════
-   MAIN STAGE
-   ══════════════════════════════════════════════════════════════════════════ */
 main {
   grid-area: main;
   display: flex;
@@ -641,16 +677,15 @@ main {
   min-height: 0;
 }
 
-/* ── Tab bar ──────────────────────────────────────────────────────────────── */
 .tab-bar {
   display: flex;
   gap: 0;
   border-bottom: 1px solid var(--border);
   background: var(--surface-2);
   padding: 0 var(--sp-5);
-  /* Allow horizontal scroll on tiny screens */
   overflow-x: auto;
   scrollbar-width: none;
+  -ms-overflow-style: none;
   flex-shrink: 0;
 }
 .tab-bar::-webkit-scrollbar { display: none; }
@@ -664,11 +699,11 @@ main {
   color: var(--text-dim);
   cursor: pointer;
   border-bottom: 2px solid transparent;
-  border-top: 2px solid transparent; /* keep height stable */
+  border-top: 2px solid transparent;
   transition: color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+  -webkit-user-select: none;
   user-select: none;
   white-space: nowrap;
-  /* Touch target height */
   min-height: var(--touch);
   display: flex;
   align-items: center;
@@ -678,7 +713,6 @@ main {
 .tab:hover { color: var(--text); }
 .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
 
-/* ── Viz stage ───────────────────────────────────────────────────────────── */
 .viz-stage {
   flex: 1;
   display: none;
@@ -690,7 +724,13 @@ main {
 }
 .viz-stage.active { display: flex; }
 
-/* ── Bar chart ───────────────────────────────────────────────────────────── */
+#viz-content {
+  display: none;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
 .bar-chart {
   flex: 1;
   display: flex;
@@ -746,7 +786,6 @@ main {
   white-space: nowrap;
 }
 
-/* ── Action log ──────────────────────────────────────────────────────────── */
 .action-log {
   background: var(--surface-2);
   border: 1px solid var(--border);
@@ -754,7 +793,6 @@ main {
   padding: var(--sp-3) var(--sp-4);
   font-family: var(--mono);
   font-size: .78rem;
-  /* Removed fixed height — allow wrapping on mobile */
   min-height: 44px;
   display: flex;
   align-items: flex-start;
@@ -788,7 +826,6 @@ main {
 
 .action-text { color: var(--text); word-break: break-word; }
 
-/* ── Progress ────────────────────────────────────────────────────────────── */
 .progress-track {
   height: 3px;
   background: var(--border);
@@ -805,7 +842,6 @@ main {
   transition: width .12s var(--ease-out);
 }
 
-/* ── Step counter ────────────────────────────────────────────────────────── */
 .step-counter {
   display: flex;
   align-items: center;
@@ -822,7 +858,6 @@ main {
 }
 .step-info span { color: var(--accent); }
 
-/* ── Empty state ─────────────────────────────────────────────────────────── */
 .empty-state {
   flex: 1;
   display: flex;
@@ -847,7 +882,6 @@ main {
   opacity: .5;
 }
 
-/* ── Code stage ──────────────────────────────────────────────────────────── */
 .code-stage {
   flex: 1;
   display: none;
@@ -907,11 +941,15 @@ main {
   min-width: 0;
   max-width: 260px;
 }
-/* Hide code-note on small screens to prevent overflow */
 @media (max-width: 600px) { .code-note { display: none; } }
 .code-note.active { color: var(--accent); font-style: normal; }
 
-/* Monaco decoration CSS classes */
+#monaco-container {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .monaco-line-compare { background: rgba(0,229,255,.10); border-left: 3px solid var(--accent) !important; }
 .monaco-line-swap     { background: rgba(255,71,87,.12); border-left: 3px solid var(--red)    !important; }
 .monaco-line-done     { background: rgba(46,204,113,.10); border-left: 3px solid var(--green) !important; }
@@ -924,7 +962,6 @@ main {
   line-height: 1;
 }
 
-/* ── History tab ─────────────────────────────────────────────────────────── */
 .history-stage {
   flex: 1;
   display: none;
@@ -966,7 +1003,6 @@ main {
 }
 .clear-btn:hover { border-color: var(--red); color: var(--red); }
 
-/* Horizontal scroll on narrow screens */
 .history-scroll { overflow-x: auto; }
 
 .history-table {
@@ -974,7 +1010,7 @@ main {
   border-collapse: collapse;
   font-family: var(--mono);
   font-size: .72rem;
-  min-width: 540px; /* forces scroll rather than crushing */
+  min-width: 540px;
 }
 
 .history-table th {
@@ -1020,7 +1056,6 @@ main {
   font-family: var(--mono);
 }
 
-/* ── Footer ──────────────────────────────────────────────────────────────── */
 footer {
   grid-area: footer;
   display: flex;
@@ -1043,14 +1078,10 @@ footer {
   flex-wrap: wrap;
 }
 
-/* Hide verbose footer text on mobile */
 @media (max-width: 600px) {
   .footer-right span:last-child { display: none; }
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   ANIMATIONS — all wrapped in prefers-reduced-motion
-   ═══════════════════════════════════════════════════════════════════════════ */
 @media (prefers-reduced-motion: no-preference) {
   @keyframes pulse {
     0%, 100% { opacity: 1; }
@@ -1063,35 +1094,19 @@ footer {
     to   { opacity: 1; transform: translateY(0); }
   }
   .bar-wrap { animation: fadeUp var(--dur-slow) var(--ease) both; }
-
-  @keyframes slideIn {
-    from { opacity: 0; transform: translateX(-8px); }
-    to   { opacity: 1; transform: translateX(0); }
-  }
 }
 
-/* ── Responsive — medium screens ─────────────────────────────────────────── */
 @media (min-width: 480px) {
   .algo-grid { grid-template-columns: 1fr 1fr 1fr; }
 }
-
 @media (min-width: 768px) {
   .algo-grid { grid-template-columns: 1fr 1fr; }
-}
-
-/* ── Print ───────────────────────────────────────────────────────────────── */
-@media print {
-  .sidebar-toggle, .run-btn, .playback-row, footer { display: none; }
-  aside { display: none; }
-  .app { grid-template-columns: 1fr; grid-template-areas: "header" "main"; }
 }
 </style>
 </head>
 <body>
-<!-- Skip link for keyboard / screen reader users (accessibility P1) -->
-<a href="#main-content" class="skip-link">Skip to main content</a>
 
-<!-- Mobile sidebar overlay scrim -->
+<a href="#main-content" class="skip-link">Skip to main content</a>
 <div class="sidebar-scrim" id="sidebar-scrim" aria-hidden="true"></div>
 
 <div class="app">
@@ -1117,7 +1132,6 @@ footer {
       <div class="status-pill" id="wasm-status"><div class="dot warn" aria-hidden="true"></div><span>JS SIM</span></div>
       <div class="status-pill"><div class="dot" aria-hidden="true"></div><span>SQLite</span></div>
     </div>
-    <!-- Mobile sidebar toggle -->
     <button class="sidebar-toggle" id="sidebar-toggle"
       aria-label="Toggle controls panel"
       aria-expanded="false"
@@ -1134,108 +1148,128 @@ footer {
 <!-- ── Sidebar ─────────────────────────────────────────────────────────────── -->
 <aside id="sidebar" aria-label="Algorithm controls">
 
-  <!-- Algorithm picker — all 24 algos, grouped -->
-  <div class="panel-section">
-    <div class="section-label">
-      Algorithm
+  <div class="panel-section flush">
+    <div class="section-label" style="padding: 20px 20px 10px 20px; margin-bottom: 0;">
+      Algorithm Matrix
       <span class="algo-category cat-sort" id="current-cat" aria-live="polite">Sort</span>
     </div>
 
-    <div class="section-label" style="margin-bottom:6px;margin-top:0;font-size:.55rem;">— Sorting —</div>
-    <div class="algo-grid" role="group" aria-label="Sorting algorithms">
-      <button class="algo-btn active" data-algo="0" aria-pressed="true" aria-label="Bubble Sort O(n squared)">
-        Bubble<span class="algo-tag" aria-hidden="true">O(n²)</span>
-      </button>
-      <button class="algo-btn" data-algo="1" aria-pressed="false" aria-label="Selection Sort O(n squared)">
-        Selection<span class="algo-tag" aria-hidden="true">O(n²)</span>
-      </button>
-      <button class="algo-btn" data-algo="2" aria-pressed="false" aria-label="Insertion Sort O(n squared)">
-        Insertion<span class="algo-tag" aria-hidden="true">O(n²)</span>
-      </button>
-      <button class="algo-btn" data-algo="3" aria-pressed="false" aria-label="Merge Sort O(n log n)">
-        Merge<span class="algo-tag" aria-hidden="true">O(n log n)</span>
-      </button>
-      <button class="algo-btn" data-algo="4" aria-pressed="false" aria-label="Quick Sort O(n log n)">
-        Quick<span class="algo-tag" aria-hidden="true">O(n log n)</span>
-      </button>
-      <button class="algo-btn" data-algo="5" aria-pressed="false" aria-label="Heap Sort O(n log n)">
-        Heap<span class="algo-tag" aria-hidden="true">O(n log n)</span>
-      </button>
-      <button class="algo-btn" data-algo="6" aria-pressed="false" aria-label="Shell Sort O(n log squared n)">
-        Shell<span class="algo-tag" aria-hidden="true">O(n log²n)</span>
-      </button>
-      <button class="algo-btn" data-algo="7" aria-pressed="false" aria-label="Counting Sort O(n plus k)">
-        Counting<span class="algo-tag" aria-hidden="true">O(n+k)</span>
-      </button>
-      <button class="algo-btn" data-algo="8" aria-pressed="false" aria-label="Radix Sort O(nk)">
-        Radix<span class="algo-tag" aria-hidden="true">O(nk)</span>
-      </button>
-    </div>
+    <!-- Group 1: Sorting -->
+    <details class="algo-group" open>
+      <summary class="group-header">Sorting <span class="group-count">9</span></summary>
+      <div class="group-content">
+        <div class="algo-grid" role="group" aria-label="Sorting algorithms">
+          <button class="algo-btn active" data-algo="0" aria-pressed="true" aria-label="Bubble Sort O(n squared)">
+            Bubble<span class="algo-tag" aria-hidden="true">O(n²)</span>
+          </button>
+          <button class="algo-btn" data-algo="1" aria-pressed="false" aria-label="Selection Sort O(n squared)">
+            Selection<span class="algo-tag" aria-hidden="true">O(n²)</span>
+          </button>
+          <button class="algo-btn" data-algo="2" aria-pressed="false" aria-label="Insertion Sort O(n squared)">
+            Insertion<span class="algo-tag" aria-hidden="true">O(n²)</span>
+          </button>
+          <button class="algo-btn" data-algo="3" aria-pressed="false" aria-label="Merge Sort O(n log n)">
+            Merge<span class="algo-tag" aria-hidden="true">O(n log n)</span>
+          </button>
+          <button class="algo-btn" data-algo="4" aria-pressed="false" aria-label="Quick Sort O(n log n)">
+            Quick<span class="algo-tag" aria-hidden="true">O(n log n)</span>
+          </button>
+          <button class="algo-btn" data-algo="5" aria-pressed="false" aria-label="Heap Sort O(n log n)">
+            Heap<span class="algo-tag" aria-hidden="true">O(n log n)</span>
+          </button>
+          <button class="algo-btn" data-algo="6" aria-pressed="false" aria-label="Shell Sort O(n log squared n)">
+            Shell<span class="algo-tag" aria-hidden="true">O(n log²n)</span>
+          </button>
+          <button class="algo-btn" data-algo="7" aria-pressed="false" aria-label="Counting Sort O(n plus k)">
+            Counting<span class="algo-tag" aria-hidden="true">O(n+k)</span>
+          </button>
+          <button class="algo-btn" data-algo="8" aria-pressed="false" aria-label="Radix Sort O(nk)">
+            Radix<span class="algo-tag" aria-hidden="true">O(nk)</span>
+          </button>
+        </div>
+      </div>
+    </details>
 
-    <div class="section-label" style="margin-bottom:6px;margin-top:14px;font-size:.55rem;">— Search —</div>
-    <div class="algo-grid" role="group" aria-label="Searching algorithms">
-      <button class="algo-btn" data-algo="9" aria-pressed="false" aria-label="Linear Search O(n)">
-        Linear<span class="algo-tag" aria-hidden="true">O(n)</span>
-      </button>
-      <button class="algo-btn" data-algo="10" aria-pressed="false" aria-label="Binary Search O(log n)">
-        Binary<span class="algo-tag" aria-hidden="true">O(log n)</span>
-      </button>
-      <button class="algo-btn" data-algo="11" aria-pressed="false" aria-label="Jump Search O(square root n)">
-        Jump<span class="algo-tag" aria-hidden="true">O(√n)</span>
-      </button>
-    </div>
+    <!-- Group 2: Search -->
+    <details class="algo-group">
+      <summary class="group-header">Search <span class="group-count">3</span></summary>
+      <div class="group-content">
+        <div class="algo-grid" role="group" aria-label="Searching algorithms">
+          <button class="algo-btn" data-algo="9" aria-pressed="false" aria-label="Linear Search O(n)">
+            Linear<span class="algo-tag" aria-hidden="true">O(n)</span>
+          </button>
+          <button class="algo-btn" data-algo="10" aria-pressed="false" aria-label="Binary Search O(log n)">
+            Binary<span class="algo-tag" aria-hidden="true">O(log n)</span>
+          </button>
+          <button class="algo-btn" data-algo="11" aria-pressed="false" aria-label="Jump Search O(square root n)">
+            Jump<span class="algo-tag" aria-hidden="true">O(√n)</span>
+          </button>
+        </div>
+      </div>
+    </details>
 
-    <div class="section-label" style="margin-bottom:6px;margin-top:14px;font-size:.55rem;">— Linear DS —</div>
-    <div class="algo-grid" role="group" aria-label="Linear data structures">
-      <button class="algo-btn" data-algo="12" aria-pressed="false" aria-label="Linked List operations">
-        Linked List<span class="algo-tag" aria-hidden="true">O(n)</span>
-      </button>
-      <button class="algo-btn" data-algo="13" aria-pressed="false" aria-label="Stack push pop peek">
-        Stack<span class="algo-tag" aria-hidden="true">LIFO</span>
-      </button>
-      <button class="algo-btn" data-algo="14" aria-pressed="false" aria-label="Queue enqueue dequeue">
-        Queue<span class="algo-tag" aria-hidden="true">FIFO</span>
-      </button>
-    </div>
+    <!-- Group 3: Linear DS -->
+    <details class="algo-group">
+      <summary class="group-header">Linear DS <span class="group-count">3</span></summary>
+      <div class="group-content">
+        <div class="algo-grid" role="group" aria-label="Linear data structures">
+          <button class="algo-btn" data-algo="12" aria-pressed="false" aria-label="Linked List operations">
+            Linked List<span class="algo-tag" aria-hidden="true">O(n)</span>
+          </button>
+          <button class="algo-btn" data-algo="13" aria-pressed="false" aria-label="Stack push pop peek">
+            Stack<span class="algo-tag" aria-hidden="true">LIFO</span>
+          </button>
+          <button class="algo-btn" data-algo="14" aria-pressed="false" aria-label="Queue enqueue dequeue">
+            Queue<span class="algo-tag" aria-hidden="true">FIFO</span>
+          </button>
+        </div>
+      </div>
+    </details>
 
-    <div class="section-label" style="margin-bottom:6px;margin-top:14px;font-size:.55rem;">— Trees —</div>
-    <div class="algo-grid" role="group" aria-label="Tree algorithms">
-      <button class="algo-btn" data-algo="15" aria-pressed="false" aria-label="BST Insert and Inorder">
-        BST Insert<span class="algo-tag" aria-hidden="true">O(log n)</span>
-      </button>
-      <button class="algo-btn" data-algo="16" aria-pressed="false" aria-label="BST Search">
-        BST Search<span class="algo-tag" aria-hidden="true">O(log n)</span>
-      </button>
-    </div>
+    <!-- Group 4: Advanced Non-Linear Structures -->
+    <details class="algo-group">
+      <summary class="group-header">Trees & Graphs <span class="group-count">5</span></summary>
+      <div class="group-content">
+        <div class="algo-grid" role="group" aria-label="Tree and Graph structures">
+          <button class="algo-btn" data-algo="15" aria-pressed="false" aria-label="BST Insert and Inorder">
+            BST Insert<span class="algo-tag" aria-hidden="true">O(log n)</span>
+          </button>
+          <button class="algo-btn" data-algo="16" aria-pressed="false" aria-label="BST Search">
+            BST Search<span class="algo-tag" aria-hidden="true">O(log n)</span>
+          </button>
+          <button class="algo-btn" data-algo="17" aria-pressed="false" aria-label="Breadth-First Search">
+            BFS<span class="algo-tag" aria-hidden="true">O(V+E)</span>
+          </button>
+          <button class="algo-btn" data-algo="18" aria-pressed="false" aria-label="Depth-First Search">
+            DFS<span class="algo-tag" aria-hidden="true">O(V+E)</span>
+          </button>
+          <button class="algo-btn" data-algo="23" aria-pressed="false" aria-label="Dijkstra Shortest Path">
+            Dijkstra<span class="algo-tag" aria-hidden="true">O(E log V)</span>
+          </button>
+        </div>
+      </div>
+    </details>
 
-    <div class="section-label" style="margin-bottom:6px;margin-top:14px;font-size:.55rem;">— Graphs —</div>
-    <div class="algo-grid" role="group" aria-label="Graph algorithms">
-      <button class="algo-btn" data-algo="17" aria-pressed="false" aria-label="Breadth-First Search">
-        BFS<span class="algo-tag" aria-hidden="true">O(V+E)</span>
-      </button>
-      <button class="algo-btn" data-algo="18" aria-pressed="false" aria-label="Depth-First Search">
-        DFS<span class="algo-tag" aria-hidden="true">O(V+E)</span>
-      </button>
-      <button class="algo-btn" data-algo="23" aria-pressed="false" aria-label="Dijkstra Shortest Path">
-        Dijkstra<span class="algo-tag" aria-hidden="true">O(E log V)</span>
-      </button>
-    </div>
-
-    <div class="section-label" style="margin-bottom:6px;margin-top:14px;font-size:.55rem;">— Heap / DP / Hash —</div>
-    <div class="algo-grid" role="group" aria-label="Heap, dynamic programming, and hash table">
-      <button class="algo-btn" data-algo="19" aria-pressed="false" aria-label="Min-Heap">
-        Min-Heap<span class="algo-tag" aria-hidden="true">O(n log n)</span>
-      </button>
-      <button class="algo-btn" data-algo="20" aria-pressed="false" aria-label="Fibonacci Dynamic Programming">
-        Fibonacci<span class="algo-tag" aria-hidden="true">O(n)</span>
-      </button>
-      <button class="algo-btn" data-algo="21" aria-pressed="false" aria-label="Longest Common Subsequence">
-        LCS<span class="algo-tag" aria-hidden="true">O(mn)</span>
-      </button>
-      <button class="algo-btn" data-algo="22" aria-pressed="false" aria-label="Hash Table">
-        Hash Table<span class="algo-tag" aria-hidden="true">O(1) avg</span>
-      </button>
-    </div>
+    <!-- Group 5: Optimization & Modules -->
+    <details class="algo-group">
+      <summary class="group-header">Heap / DP / Hash <span class="group-count">4</span></summary>
+      <div class="group-content">
+        <div class="algo-grid" role="group" aria-label="Heap, dynamic programming, and hash table">
+          <button class="algo-btn" data-algo="19" aria-pressed="false" aria-label="Min-Heap">
+            Min-Heap<span class="algo-tag" aria-hidden="true">O(n log n)</span>
+          </button>
+          <button class="algo-btn" data-algo="20" aria-pressed="false" aria-label="Fibonacci Dynamic Programming">
+            Fibonacci<span class="algo-tag" aria-hidden="true">O(n)</span>
+          </button>
+          <button class="algo-btn" data-algo="21" aria-pressed="false" aria-label="Longest Common Subsequence">
+            LCS<span class="algo-tag" aria-hidden="true">O(mn)</span>
+          </button>
+          <button class="algo-btn" data-algo="22" aria-pressed="false" aria-label="Hash Table">
+            Hash Table<span class="algo-tag" aria-hidden="true">O(1) avg</span>
+          </button>
+        </div>
+      </div>
+    </details>
   </div>
 
   <!-- Data input -->
@@ -1243,16 +1277,15 @@ footer {
     <div class="section-label">Input Data</div>
     <div class="input-group">
       <label for="array-input">Array (comma-separated integers)</label>
-      <textarea id="array-input" rows="3" spellcheck="false"
-        aria-describedby="array-hint">64, 34, 25, 12, 22, 11, 90</textarea>
-      <span id="array-hint" style="font-size:.58rem;color:var(--text-dim);font-family:var(--mono);margin-top:4px;display:block;">
+      <textarea id="array-input" rows="3" spellcheck="false" aria-describedby="array-hint">64, 34, 25, 12, 22, 11, 90</textarea>
+      <span id="array-hint">
         Graphs: enter edge pairs. Dijkstra: triplets (u w v). DP/Fib: single number.
       </span>
     </div>
     <button class="gen-btn" id="gen-btn" aria-label="Generate 16 random values">
       ⚡ Generate random (16 values)
     </button>
-    <div class="input-group target-row" id="target-row" style="margin-top:10px;">
+    <div class="input-group target-row" id="target-row">
       <label for="target-input">Search Target</label>
       <input type="number" id="target-input" value="25" aria-label="Value to search for">
     </div>
@@ -1269,9 +1302,9 @@ footer {
       <span class="speed-val" id="speed-val" aria-live="polite" aria-atomic="true">300ms</span>
     </div>
     <button class="run-btn" id="run-btn" aria-label="Record and play algorithm">
-      ▶ Record &amp; Play
+      ▶ Record & Play
     </button>
-    <div class="playback-row" style="margin-top:var(--sp-2)">
+    <div class="playback-row">
       <button class="pb-btn" id="pb-pause" disabled aria-label="Pause playback">⏸ Pause</button>
       <button class="pb-btn" id="pb-step"  disabled aria-label="Step forward one frame">⏭ Step</button>
       <button class="pb-btn" id="pb-reset" disabled aria-label="Reset to beginning">↺ Reset</button>
@@ -1320,10 +1353,10 @@ footer {
 
     <div id="empty-state" class="empty-state">
       <div class="empty-icon" aria-hidden="true">▶</div>
-      <div>Select an algorithm, enter data, and press Record &amp; Play</div>
+      <div>Select an algorithm, enter data, and press Record & Play</div>
     </div>
 
-    <div id="viz-content" style="display:none; flex:1; flex-direction:column; gap:var(--sp-4);">
+    <div id="viz-content">
       <div class="step-counter">
         <div class="step-info">
           Step <span id="cur-step">0</span> / <span id="tot-steps">0</span>
@@ -1342,17 +1375,16 @@ footer {
       </div>
     </div>
 
-  </div><!-- /#tab-viz -->
+  </div>
 
-  <!-- Source Trace tab — Monaco Editor instance (read-only, dark theme) -->
+  <!-- Source Trace tab — Monaco Editor instance -->
   <div class="code-stage" id="tab-code" role="tabpanel" aria-labelledby="tab-code-trigger">
     <div class="code-panel-header">
       <span class="code-lang-badge" aria-hidden="true">C++</span>
       <span class="code-title" id="code-title">BubbleSort::sort()</span>
       <span class="code-note" id="code-note" aria-live="polite">Run an algorithm to activate</span>
     </div>
-    <div id="monaco-container" style="flex:1; min-height:0; overflow:hidden;"
-      aria-label="C++ source code viewer" role="region"></div>
+    <div id="monaco-container" aria-label="C++ source code viewer" role="region"></div>
   </div>
 
   <!-- History tab -->
@@ -1379,21 +1411,12 @@ footer {
   </div>
 </footer>
 
-</div><!-- /.app -->
+</div>
 
 <!-- ── Scripts ─────────────────────────────────────────────────────────────── -->
-<!-- Task 2: Monaco Editor (replaces Highlight.js) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.47.0/min/vs/loader.min.js"></script>
 <script src="engine.sim.js"></script>
 <script>
-
-// ════════════════════════════════════════════════════════════════════════════
-// PHASE 2 — Algorithm → C++ Source Map
-// Each entry: { title, lines: ["raw cpp line", ...] }
-// Lines are 1-indexed: lines[0] = line 1 in the code panel.
-// Keep lines concise — these are snippets, not full headers.
-// ════════════════════════════════════════════════════════════════════════════
-
 const SOURCE_MAP = {
   0: {
     title: 'BubbleSort::sort()',
@@ -1710,15 +1733,8 @@ const SOURCE_MAP = {
   },
 };
 
-// ── DOM refs needed by Monaco block (must be before require.config) ──────────
 const $codeTitle = document.getElementById('code-title');
 const $codeNote  = document.getElementById('code-note');
-
-// ════════════════════════════════════════════════════════════════════════════
-// TASK 2 — Monaco Editor (replaces Highlight.js <pre><code> panel)
-// One editor instance, content swapped via setValue() per algorithm.
-// Active-line highlighting uses deltaDecorations — survives source swaps.
-// ════════════════════════════════════════════════════════════════════════════
 
 let monacoEditor  = null;
 let monacoDecoIds = [];
@@ -1728,18 +1744,13 @@ function sourceToText(entry) {
   return entry.lines.join('\n');
 }
 
-// Fix: disable blob workers (blocked by CSP in sandboxed iframes / claudeusercontent).
-// Monaco falls back to main-thread worker automatically — no functionality lost.
 window.MonacoEnvironment = { getWorker: () => null };
 
-// ── Monaco init via AMD require ───────────────────────────────────────────────
 require.config({
   paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.47.0/min/vs' }
 });
 
 require(['vs/editor/editor.main'], () => {
-
-  // Custom dark theme matching the dashboard palette
   monaco.editor.defineTheme('flight-recorder', {
     base: 'vs-dark',
     inherit: true,
@@ -1775,7 +1786,7 @@ require(['vs/editor/editor.main'], () => {
       lineNumbers:          'on',
       glyphMargin:          true,
       folding:              false,
-      renderLineHighlight:  'none',   // handled via deltaDecorations
+      renderLineHighlight:  'none',
       fontSize:             13,
       fontFamily:           "'Share Tech Mono', 'Courier New', monospace",
       lineHeight:           22,
@@ -1785,10 +1796,8 @@ require(['vs/editor/editor.main'], () => {
     }
   );
 
-  // Ensure Monaco reflows when window or tab-pane changes size
   window.addEventListener('resize', () => monacoEditor.layout());
 
-  // Also layout when the code tab becomes visible (it has display:none initially)
   document.querySelectorAll('.tab').forEach(t => {
     t.addEventListener('click', () => {
       if (t.dataset.tab === 'code') setTimeout(() => monacoEditor.layout(), 50);
@@ -1796,35 +1805,21 @@ require(['vs/editor/editor.main'], () => {
   });
 });
 
-// ── injectSource(algoId) ──────────────────────────────────────────────────────
-// Swaps Monaco content + updates header title.
-// Called on algo-button click and on page load.
 function injectSource(algoId) {
   const entry = SOURCE_MAP[algoId];
-
   if ($codeTitle) {
     $codeTitle.textContent = entry
       ? entry.title + ' — active line highlighted in real time'
       : 'Source Trace';
   }
-
-  if (!monacoEditor) return;   // Monaco not loaded yet — will show correct source on init
-
+  if (!monacoEditor) return;
   monacoEditor.setValue(sourceToText(entry));
-  // Clear stale decorations whenever source changes
   monacoDecoIds = monacoEditor.deltaDecorations(monacoDecoIds, []);
 }
 
-// ── Inject source immediately for the default algo (0 = Bubble Sort) ─────────
-// Monaco may not be ready yet — injectSource guards against that safely.
 injectSource(0);
-/* ════════════════════════════════════════════════════════════════════════════
-   BRIDGE LAYER — JavaScript coordinator
-   Handles UI state, hands data to C++ engine (via JS sim), animates results.
-   ════════════════════════════════════════════════════════════════════════════ */
 
-const ALGO_NAMES = AlgoEngine.NAMES;  // single source of truth from engine
-
+const ALGO_NAMES = AlgoEngine.NAMES;
 const COMPLEXITY = [
   'O(n²)','O(n²)','O(n²)','O(n log n)','O(n log n)',
   'O(n log n)','O(n log²n)','O(n+k)','O(nk)',
@@ -1837,7 +1832,6 @@ const COMPLEXITY = [
   'O(E log V)',
 ];
 
-// ── State ─────────────────────────────────────────────────────────────────────
 let selectedAlgo = 0;
 let steps        = [];
 let currentStep  = 0;
@@ -1846,7 +1840,6 @@ let paused       = false;
 let playTimer    = null;
 let maxVal       = 1;
 
-// ── DOM refs ──────────────────────────────────────────────────────────────────
 const $arrayInput  = document.getElementById('array-input');
 const $targetInput = document.getElementById('target-input');
 const $targetRow   = document.getElementById('target-row');
@@ -1870,9 +1863,7 @@ const $mSwaps      = document.getElementById('m-swaps');
 const $mSize       = document.getElementById('m-size');
 const $genBtn      = document.getElementById('gen-btn');
 const $clearHistory= document.getElementById('clear-history');
-// $codeNote and $codeTitle declared above Monaco block (before first use)
 
-// ── Mobile sidebar toggle ─────────────────────────────────────────────────────
 const $sidebarToggle = document.getElementById('sidebar-toggle');
 const $sidebar       = document.getElementById('sidebar');
 const $sidebarScrim  = document.getElementById('sidebar-scrim');
@@ -1881,7 +1872,6 @@ function openSidebar() {
   $sidebar.classList.add('open');
   $sidebarScrim.classList.add('visible');
   $sidebarToggle.setAttribute('aria-expanded', 'true');
-  // Trap focus on first interactive element in sidebar
   $sidebar.querySelector('button, input, textarea')?.focus();
 }
 
@@ -1895,16 +1885,13 @@ function closeSidebar() {
 $sidebarToggle?.addEventListener('click', () => {
   $sidebar.classList.contains('open') ? closeSidebar() : openSidebar();
 });
-
 $sidebarScrim?.addEventListener('click', closeSidebar);
 
-// Close sidebar on Escape
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && $sidebar.classList.contains('open')) closeSidebar();
 });
 
-// ── Algorithm selection ───────────────────────────────────────────────────────
-const SEARCH_ALGOS  = new Set([9, 10, 11, 16]);  // show target input
+const SEARCH_ALGOS  = new Set([9, 10, 11, 16]);
 const $currentCat   = document.getElementById('current-cat');
 const CAT_LABEL     = ['sort','sort','sort','sort','sort','sort','sort','sort','sort',
                        'search','search','search','ds','ds','ds','tree','tree',
@@ -1922,10 +1909,8 @@ document.querySelectorAll('.algo-btn').forEach(btn => {
     btn.setAttribute('aria-pressed', 'true');
     selectedAlgo = parseInt(btn.dataset.algo);
 
-    // Show target input for search algorithms
     $targetRow.classList.toggle('visible', SEARCH_ALGOS.has(selectedAlgo));
 
-    // Update category badge
     if ($currentCat) {
       const cat = CAT_LABEL[selectedAlgo] ?? 'sort';
       $currentCat.textContent = cat.toUpperCase();
@@ -1939,12 +1924,10 @@ document.querySelectorAll('.algo-btn').forEach(btn => {
       $codeNote.classList.remove('active');
     }
 
-    // Close sidebar on mobile after selection
     if (window.innerWidth < 768) closeSidebar();
   });
 });
 
-// ── Tabs — ARIA roving tabindex ────────────────────────────────────────────────
 const $tabs = document.querySelectorAll('.tab');
 
 function activateTab(tab) {
@@ -1971,7 +1954,6 @@ function activateTab(tab) {
 
 $tabs.forEach((tab, i) => {
   tab.addEventListener('click', () => activateTab(tab));
-  // Arrow key navigation (ARIA tabs pattern)
   tab.addEventListener('keydown', e => {
     if (e.key === 'ArrowRight') { e.preventDefault(); activateTab($tabs[(i + 1) % $tabs.length]); $tabs[(i + 1) % $tabs.length].focus(); }
     if (e.key === 'ArrowLeft')  { e.preventDefault(); activateTab($tabs[(i - 1 + $tabs.length) % $tabs.length]); $tabs[(i - 1 + $tabs.length) % $tabs.length].focus(); }
@@ -1980,12 +1962,10 @@ $tabs.forEach((tab, i) => {
   });
 });
 
-// ── Speed slider ──────────────────────────────────────────────────────────────
 $speedSlider.addEventListener('input', () => {
   $speedVal.textContent = $speedSlider.value + 'ms';
 });
 
-// ── Generate random ───────────────────────────────────────────────────────────
 $genBtn.addEventListener('click', () => {
   const n   = 16;
   const arr = Array.from({length: n}, () => Math.floor(Math.random() * 95) + 5);
@@ -1995,7 +1975,6 @@ $genBtn.addEventListener('click', () => {
   }
 });
 
-// ── Parse input ───────────────────────────────────────────────────────────────
 function parseArray() {
   return $arrayInput.value
     .split(',')
@@ -2003,13 +1982,11 @@ function parseArray() {
     .filter(n => !isNaN(n));
 }
 
-// ── Phase 4: Input validation ────────────────────────────────────────────────
 function validateInput(arr, algoId) {
   if (!arr.length)
     return 'Enter at least one number.';
   if (arr.some(isNaN))
     return 'Invalid characters detected — numbers only, comma-separated.';
-  // Size limits per algorithm category
   const isGraph = algoId >= 17 && algoId <= 18;
   const isDP    = algoId >= 20 && algoId <= 21;
   const limit   = isGraph ? 20 : isDP ? 30 : 60;
@@ -2017,46 +1994,18 @@ function validateInput(arr, algoId) {
     return `Max ${limit} elements for this algorithm (you entered ${arr.length}).`;
   if (arr.some(v => v < 0) && (algoId === 7 || algoId === 8))
     return 'Counting Sort and Radix Sort require non-negative integers.';
-  return null; // valid
+  return null;
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-// TASK 3 — Execution Streaming / Pagination
-//
-// Problem: AlgoEngine.run() is synchronous — it builds the entire steps[]
-// array in one call, freezing the browser on large inputs (e.g. n=60 Quick
-// Sort can produce 3000+ steps all at once).
-//
-// Solution: a Generator-based wrapper that produces steps lazily in chunks.
-// The run handler starts an async playback loop that reads one step per tick
-// rather than materialising the whole array upfront.
-//
-// Architecture:
-//   streamRun(algoId, arr, extra)          → AsyncGenerator<Step>
-//   startStreamingPlayback(gen, chunkSize) → drives tick() from the generator
-//
-// The existing steps[] array is kept for scrubbing (pause/step/reset).
-// We fill it incrementally as the generator yields — so the slider still works
-// after the run completes, and pause mid-run is safe.
-// ════════════════════════════════════════════════════════════════════════════
-
-// Chunk size: how many steps to materialise per setTimeout tick.
-// 1 = smoothest animation but most overhead; 5-10 = balanced.
 const STREAM_CHUNK = 1;
 
-// Generator wrapper — yields one Step object at a time from AlgoEngine.run()
-// Uses a synchronous JS generator (function*) since the sim runs in-browser.
-// When compiled WASM is used, replace the body with Emscripten streaming.
 function* stepGenerator(algoId, inputArray, extra) {
-  // Run the full algorithm into a temporary buffer
-  // (for WASM this would be replaced by a C++ coroutine / WASM async)
   const allSteps = AlgoEngine.run(algoId, inputArray, extra);
   for (const step of allSteps) {
     yield step;
   }
 }
 
-// Async streaming playback — reads from generator, fills steps[], renders
 function startStreamingPlayback(gen) {
   playing     = true;
   paused      = false;
@@ -2069,30 +2018,21 @@ function startStreamingPlayback(gen) {
       const { value: step, done } = gen.next();
 
       if (done) {
-        // Generator exhausted — full run is now in steps[]
         playing = false;
         setControls(false);
         return;
       }
 
-      // Materialise step into the scrollable steps array
       steps.push(step);
       currentStep = steps.length - 1;
-
-      // Update progress bar with what we know so far
       $curStep.textContent = steps.length;
-
-      // Render this step immediately
       renderStep(currentStep);
     }
-
     playTimer = setTimeout(pumpChunk, parseInt($speedSlider.value, 10));
   }
-
   pumpChunk();
 }
 
-// ── Run ───────────────────────────────────────────────────────────────────────
 $runBtn.addEventListener('click', () => {
   const arr = parseArray();
   const err = validateInput(arr, selectedAlgo);
@@ -2100,13 +2040,10 @@ $runBtn.addEventListener('click', () => {
 
   stopPlayback();
 
-  // Task 3: reset steps — will be filled incrementally by the generator
   steps       = [];
   currentStep = 0;
   maxVal      = Math.max(...arr, 1);
 
-  // Metrics — compute upfront via a dry-run count for the sidebar display
-  // (re-uses the synchronous engine; the streaming generator also yields same steps)
   const dryRun = AlgoEngine.run(selectedAlgo, arr,
                    parseInt($targetInput.value, 10) || 0);
   const cmps  = dryRun.filter(s => s.phase === 'compare').length;
@@ -2117,7 +2054,6 @@ $runBtn.addEventListener('click', () => {
   $mSize.textContent  = arr.length;
   $totSteps.textContent = dryRun.length;
 
-  // Show viz panel
   $emptyState.style.display = 'none';
   $vizContent.style.display = 'flex';
   $curAlgo.textContent      = AlgoEngine.NAMES[selectedAlgo] ?? '—';
@@ -2126,18 +2062,12 @@ $runBtn.addEventListener('click', () => {
   playing = false;
   paused  = false;
 
-  // Task 3: create a fresh generator and start streaming playback
   const gen = stepGenerator(selectedAlgo, arr,
                 parseInt($targetInput.value, 10) || 0);
   setControls(true);
   startStreamingPlayback(gen);
 });
 
-// ── Active-line highlight — Task 2: Monaco deltaDecorations ──────────────────
-// Called by renderStep() on every animation tick.
-// Clears the previous decoration set and applies one matching step.ln + phase.
-
-// Map phase → decoration CSS class (defined in injected <style> above)
 const MONACO_DECO_CLASS = {
   compare: 'monaco-line-compare',
   swap:    'monaco-line-swap',
@@ -2151,13 +2081,9 @@ const MONACO_DECO_CLASS = {
 
 function highlightLine(step) {
   if (!monacoEditor) return;
-
   const ln = step.ln ?? step.lineNumber ?? -1;
-
-  // Always wipe previous decorations — one at a time, no accumulation
   monacoDecoIds = monacoEditor.deltaDecorations(monacoDecoIds, []);
 
-  // Update header note
   if ($codeNote) {
     if (ln > 0) {
       $codeNote.textContent = `Line ${ln} — ${step.phase.toUpperCase()} — ${step.action}`;
@@ -2168,11 +2094,9 @@ function highlightLine(step) {
     }
   }
 
-  if (ln < 1) return;   // -1 = no source line tagged for this step
-
+  if (ln < 1) return;
   const className = MONACO_DECO_CLASS[step.phase] ?? 'monaco-line-compare';
 
-  // Apply new single-line decoration
   monacoDecoIds = monacoEditor.deltaDecorations([], [
     {
       range: new monaco.Range(ln, 1, ln, 1),
@@ -2191,41 +2115,29 @@ function highlightLine(step) {
       }
     }
   ]);
-
-  // Phase 3: smooth scroll to keep active line centred in viewport
   monacoEditor.revealLineInCenter(ln, monaco.editor.ScrollType.Smooth);
 }
 
-// ── DS / Graph / Tree renderer dispatcher ────────────────────────────────────
-// Algorithms 12-14 = Linear DS  → block+arrow canvas
-// Algorithms 15-16 = BST tree   → SVG node layout
-// Algorithms 17-18 = Graph      → SVG force layout
-// Everything else  → bar chart  (existing)
+const DS_IDS       = new Set([12, 13, 14]);
+const TREE_IDS     = new Set([15, 16]);
+const GRAPH_IDS    = new Set([17, 18]);
+const DIJKSTRA_IDS = new Set([23]);
 
-const DS_IDS       = new Set([12, 13, 14]);       // Phase 5
-const TREE_IDS     = new Set([15, 16]);            // Phase 6
-const GRAPH_IDS    = new Set([17, 18]);            // Phase 6
-const DIJKSTRA_IDS = new Set([23]);                // Task 4
-
-// ── Render a single step ─────────────────────────────────────────────────────
 function renderStep(idx) {
   if (!steps.length) return;
   idx = Math.max(0, Math.min(idx, steps.length - 1));
   const s = steps[idx];
 
-  // Progress
   const pct = steps.length > 1 ? (idx / (steps.length - 1)) * 100 : 100;
   $progressFill.style.width = pct + '%';
   $curStep.textContent = idx + 1;
 
-  // Route to correct renderer
   if (DS_IDS.has(selectedAlgo))          renderDS(s);
   else if (TREE_IDS.has(selectedAlgo))   renderTree(s);
   else if (GRAPH_IDS.has(selectedAlgo))  renderGraph(s);
   else if (DIJKSTRA_IDS.has(selectedAlgo)) renderDijkstra(s);
   else                                   renderBars(s);
 
-  // Action log
   $actionLog.innerHTML = `
     <span class="action-phase ${s.phase}">${s.phase.toUpperCase()}</span>
     <span class="action-text">${s.action}</span>
@@ -2233,7 +2145,6 @@ function renderStep(idx) {
   highlightLine(s);
 }
 
-// ── BAR CHART renderer (sorts + searches + heap + dp + hash) ─────────────────
 function renderBars(s) {
   const chartH = $barChart.clientHeight || 300;
   $barChart.innerHTML = '';
@@ -2263,23 +2174,13 @@ function renderBars(s) {
   });
 }
 
-// ── Phase 5: LINEAR DS renderer (Linked List / Stack / Queue) ─────────────────
-// Reads s.extra JSON: type = "ll" | "stack" | "queue"
-// Renders coloured blocks with arrows for next-pointers (LL), top marker (Stack),
-// front/rear markers (Queue).
-
 function renderDS(s) {
   $barChart.style.display = 'block';
   $barChart.innerHTML = '';
 
   let data = null;
   try { data = s.extra ? JSON.parse(s.extra) : null; } catch(e) {}
-
-  if (!data) {
-    // Fallback: plain array bars
-    $barChart.style.display = 'flex';
-    return renderBars(s);
-  }
+  if (!data) { $barChart.style.display = 'flex'; return renderBars(s); }
 
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   svg.setAttribute('width', '100%');
@@ -2293,7 +2194,6 @@ function renderDS(s) {
   const startX = 24, cy = H / 2;
 
   if (data.type === 'll') {
-    // Build index → position map from head chain
     const nodes = data.nodes;
     const chain = [];
     let cur = data.head;
@@ -2306,9 +2206,7 @@ function renderDS(s) {
       const x = startX + pos * (BW + GAP);
       const node = nodes[ni];
       const isActive  = ni === data.active;
-      const isDeleted = data.op === 'after_delete' && ni === data.active;
 
-      // Box
       const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
       rect.setAttribute('x', x); rect.setAttribute('y', cy - BH/2);
       rect.setAttribute('width', BW); rect.setAttribute('height', BH);
@@ -2318,7 +2216,6 @@ function renderDS(s) {
       rect.setAttribute('stroke-width', isActive ? 2 : 1);
       svg.appendChild(rect);
 
-      // Value label
       const txt = document.createElementNS('http://www.w3.org/2000/svg','text');
       txt.setAttribute('x', x + BW/2); txt.setAttribute('y', cy + 5);
       txt.setAttribute('text-anchor','middle');
@@ -2328,7 +2225,6 @@ function renderDS(s) {
       txt.textContent = node.val;
       svg.appendChild(txt);
 
-      // Index label
       const idx_t = document.createElementNS('http://www.w3.org/2000/svg','text');
       idx_t.setAttribute('x', x + BW/2); idx_t.setAttribute('y', cy - BH/2 - 6);
       idx_t.setAttribute('text-anchor','middle');
@@ -2337,7 +2233,6 @@ function renderDS(s) {
       idx_t.textContent = `[${ni}]`;
       svg.appendChild(idx_t);
 
-      // Arrow to next
       if (node.next !== -1) {
         const ax = x + BW, ay = cy;
         const bx = x + BW + GAP, by = cy;
@@ -2348,7 +2243,6 @@ function renderDS(s) {
         arrow.setAttribute('marker-end','url(#arrowhead)');
         svg.appendChild(arrow);
       } else {
-        // NULL marker
         const nt = document.createElementNS('http://www.w3.org/2000/svg','text');
         nt.setAttribute('x', x + BW + 6); nt.setAttribute('y', cy + 4);
         nt.setAttribute('fill','#3a4358'); nt.setAttribute('font-size','9');
@@ -2358,7 +2252,6 @@ function renderDS(s) {
       }
     });
 
-    // HEAD label
     if (data.head !== -1) {
       const ht = document.createElementNS('http://www.w3.org/2000/svg','text');
       ht.setAttribute('x', startX + BW/2); ht.setAttribute('y', cy + BH/2 + 16);
@@ -2369,7 +2262,6 @@ function renderDS(s) {
       svg.appendChild(ht);
     }
 
-    // Empty message
     if (chain.length === 0) {
       const et = document.createElementNS('http://www.w3.org/2000/svg','text');
       et.setAttribute('x', W/2); et.setAttribute('y', H/2);
@@ -2381,7 +2273,6 @@ function renderDS(s) {
     }
 
   } else if (data.type === 'stack') {
-    // Render LIFO: bottom → top, bottom of SVG = bottom of stack
     const items = data.items;
     const SBH = 34, SPAD = 4;
     const sx = W/2 - BW/2;
@@ -2465,7 +2356,6 @@ function renderDS(s) {
       lbl.textContent = isFront && isRear ? 'FRONT/REAR' : isFront ? 'FRONT' : isRear ? 'REAR' : '';
       svg.appendChild(lbl);
 
-      // Arrow between items
       if (i < items.length - 1) {
         const arrow = document.createElementNS('http://www.w3.org/2000/svg','line');
         arrow.setAttribute('x1', x + BW); arrow.setAttribute('y1', cy);
@@ -2487,7 +2377,6 @@ function renderDS(s) {
     }
   }
 
-  // Shared arrowhead marker
   const defs = document.createElementNS('http://www.w3.org/2000/svg','defs');
   defs.innerHTML = `<marker id="arrowhead" markerWidth="8" markerHeight="6"
     refX="6" refY="3" orient="auto">
@@ -2495,10 +2384,6 @@ function renderDS(s) {
   </marker>`;
   svg.insertBefore(defs, svg.firstChild);
 }
-
-// ── Phase 6: TREE renderer (BST) ─────────────────────────────────────────────
-// Reads s.extra JSON: {type:"bst", nodes:[{val,id,left,right,active,visited}]}
-// Draws nodes in a top-down tree layout with SVG
 
 function renderTree(s) {
   $barChart.style.display = 'block';
@@ -2513,19 +2398,16 @@ function renderTree(s) {
 
   const W = $barChart.clientWidth  || 600;
   const H = $barChart.clientHeight || 300;
-  const R = 20;  // node radius
+  const R = 20;
   const LEVEL_H = 70;
 
-  // Build id → node map
   const byId = {};
   data.nodes.forEach(n => { byId[n.id] = n; });
 
-  // Find root = node not referenced as any child
   const childIds = new Set(data.nodes.flatMap(n => [n.left, n.right]).filter(x => x !== -1));
   const root = data.nodes.find(n => !childIds.has(n.id));
   if (!root) { $barChart.style.display='flex'; return renderBars(s); }
 
-  // Assign x positions via in-order traversal index
   let xCounter = 0;
   const pos = {};
   function assignX(id, depth) {
@@ -2545,7 +2427,6 @@ function renderTree(s) {
   svg.setAttribute('width','100%'); svg.setAttribute('height','100%');
   $barChart.appendChild(svg);
 
-  // Draw edges first (below nodes)
   data.nodes.forEach(n => {
     const p = pos[n.id];
     if (!p) return;
@@ -2564,7 +2445,6 @@ function renderTree(s) {
     });
   });
 
-  // Draw nodes
   data.nodes.forEach(n => {
     const p = pos[n.id]; if (!p) return;
     const cx = xOffset + p.x * xScale, cy2 = 30 + p.y * LEVEL_H;
@@ -2591,20 +2471,13 @@ function renderTree(s) {
   });
 }
 
-// ── Phase 6: GRAPH renderer (BFS / DFS) ──────────────────────────────────────
-// Reads s.extra JSON: {type:"bfs"|"dfs", edges:[[u,v],...], visited:[], frontier:[], current:N}
-// Positions nodes in a circle, colours by visited/frontier/current
-
 function renderGraph(s) {
   $barChart.style.display = 'block';
   $barChart.innerHTML = '';
 
   let data = null;
   try { data = s.extra ? JSON.parse(s.extra) : null; } catch(e) {}
-  if (!data || !data.edges) {
-    $barChart.style.display = 'flex';
-    return renderBars(s);
-  }
+  if (!data || !data.edges) { $barChart.style.display = 'flex'; return renderBars(s); }
 
   const W = $barChart.clientWidth  || 600;
   const H = $barChart.clientHeight || 300;
@@ -2612,14 +2485,12 @@ function renderGraph(s) {
   const CR = Math.min(W, H) / 2 - R - 20;
   const cx = W / 2, cy = H / 2;
 
-  // Collect unique nodes
   const nodeSet = new Set();
   data.edges.forEach(([u,v]) => { nodeSet.add(u); nodeSet.add(v); });
   const nodes = Array.from(nodeSet).sort((a,b)=>a-b);
   const n = nodes.length;
   const angleStep = (2 * Math.PI) / Math.max(n, 1);
 
-  // Position map
   const nodePos = {};
   nodes.forEach((id, i) => {
     const angle = i * angleStep - Math.PI / 2;
@@ -2633,7 +2504,6 @@ function renderGraph(s) {
   svg.setAttribute('width','100%'); svg.setAttribute('height','100%');
   $barChart.appendChild(svg);
 
-  // Edges
   data.edges.forEach(([u, v]) => {
     const pu = nodePos[u], pv = nodePos[v];
     if (!pu || !pv) return;
@@ -2646,7 +2516,6 @@ function renderGraph(s) {
     svg.appendChild(line);
   });
 
-  // Nodes
   nodes.forEach(id => {
     const p = nodePos[id]; if (!p) return;
     const isCurrent  = id === data.current;
@@ -2676,7 +2545,6 @@ function renderGraph(s) {
     svg.appendChild(txt);
   });
 
-  // Legend
   [['#ff4757','Current'],['#00e5ff','Visited'],['#ffd166','Frontier'],['#3a4358','Unvisited']].forEach(([col,lbl], i) => {
     const lx = 12, ly = 14 + i * 16;
     const dot = document.createElementNS('http://www.w3.org/2000/svg','circle');
@@ -2692,25 +2560,13 @@ function renderGraph(s) {
   });
 }
 
-// ── Task 4: DIJKSTRA renderer ─────────────────────────────────────────────────
-// Reads s.extra JSON:
-//   {type:"dijkstra", edges:[{u,v,w}], dist:{}, visited:[], frontier:[], current, path:{}}
-//
-// Layout: circular node positions.
-// Colours: red=current, cyan=settled/visited, gold=in frontier, dark=unvisited.
-// Edge labels: weight shown at midpoint.
-// Distance labels: shown below each node circle (∞ until relaxed).
-
 function renderDijkstra(s) {
   $barChart.style.display = 'block';
   $barChart.innerHTML = '';
 
   let data = null;
   try { data = s.extra ? JSON.parse(s.extra) : null; } catch(e) {}
-  if (!data || !data.edges) {
-    $barChart.style.display = 'flex';
-    return renderBars(s);
-  }
+  if (!data || !data.edges) { $barChart.style.display = 'flex'; return renderBars(s); }
 
   const W = $barChart.clientWidth  || 600;
   const H = $barChart.clientHeight || 300;
@@ -2718,14 +2574,12 @@ function renderDijkstra(s) {
   const CR = Math.min(W, H) / 2 - R - 32;
   const cxC = W / 2, cyC = H / 2;
 
-  // Collect unique nodes from edges
   const nodeSet = new Set();
   data.edges.forEach(e => { nodeSet.add(e.u); nodeSet.add(e.v); });
   const nodes = Array.from(nodeSet).sort((a, b) => a - b);
   const n = nodes.length;
   const angleStep = (2 * Math.PI) / Math.max(n, 1);
 
-  // Circular layout
   const pos = {};
   nodes.forEach((id, i) => {
     const angle = i * angleStep - Math.PI / 2;
@@ -2737,7 +2591,6 @@ function renderDijkstra(s) {
   const dist        = data.dist  || {};
   const current     = data.current;
 
-  // Build settled path edges for highlight
   const pathEdges = new Set();
   if (data.path) {
     for (const [node, info] of Object.entries(data.path)) {
@@ -2752,8 +2605,6 @@ function renderDijkstra(s) {
   svg.setAttribute('width', '100%'); svg.setAttribute('height', '100%');
   $barChart.appendChild(svg);
 
-  // ── Draw edges with weight labels ─────────────────────────────────────────
-  // Deduplicate undirected edges
   const drawnEdges = new Set();
   data.edges.forEach(e => {
     const key = [e.u, e.v].sort().join('-');
@@ -2769,12 +2620,10 @@ function renderDijkstra(s) {
     const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
     line.setAttribute('x1', pu.x); line.setAttribute('y1', pu.y);
     line.setAttribute('x2', pv.x); line.setAttribute('y2', pv.y);
-    line.setAttribute('stroke',
-      isPathEdge ? '#00e5ff' : bothVisited ? '#2a3a50' : '#1e2535');
+    line.setAttribute('stroke', isPathEdge ? '#00e5ff' : bothVisited ? '#2a3a50' : '#1e2535');
     line.setAttribute('stroke-width', isPathEdge ? 2.5 : 1);
     svg.appendChild(line);
 
-    // Weight label at edge midpoint
     const mx = (pu.x + pv.x) / 2;
     const my = (pu.y + pv.y) / 2;
     const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
@@ -2794,7 +2643,6 @@ function renderDijkstra(s) {
     svg.appendChild(wt);
   });
 
-  // ── Draw nodes ────────────────────────────────────────────────────────────
   nodes.forEach(id => {
     const p = pos[id]; if (!p) return;
     const isCurrent  = id === current;
@@ -2816,7 +2664,6 @@ function renderDijkstra(s) {
     circle.setAttribute('stroke-width', isCurrent ? 3 : isVisited ? 2 : 1.5);
     svg.appendChild(circle);
 
-    // Node ID
     const nid = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     nid.setAttribute('x', p.x); nid.setAttribute('y', p.y + 4);
     nid.setAttribute('text-anchor', 'middle');
@@ -2827,7 +2674,6 @@ function renderDijkstra(s) {
     nid.textContent = id;
     svg.appendChild(nid);
 
-    // Distance badge below node
     const distBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
     distBg.setAttribute('x', p.x - 14); distBg.setAttribute('y', p.y + R + 3);
     distBg.setAttribute('width', 28); distBg.setAttribute('height', 14);
@@ -2847,7 +2693,6 @@ function renderDijkstra(s) {
     svg.appendChild(distTxt);
   });
 
-  // ── Legend ────────────────────────────────────────────────────────────────
   [
     ['#ff4757',  'Current (settling)'],
     ['#00e5ff',  'Settled (visited)'],
@@ -2867,6 +2712,7 @@ function renderDijkstra(s) {
     svg.appendChild(lt);
   });
 }
+
 function startPlayback() {
   playing = true;
   paused  = false;
@@ -2897,7 +2743,6 @@ function setControls(active) {
   $resetBtn.disabled = !active;
 }
 
-// Pause / resume
 $pauseBtn.addEventListener('click', () => {
   if (!playing && !paused) return;
   paused = !paused;
@@ -2905,7 +2750,6 @@ $pauseBtn.addEventListener('click', () => {
   if (!paused) tick();
 });
 
-// Step forward
 $stepBtn.addEventListener('click', () => {
   paused = true;
   $pauseBtn.textContent = '▶ Resume';
@@ -2915,7 +2759,6 @@ $stepBtn.addEventListener('click', () => {
   }
 });
 
-// Reset
 $resetBtn.addEventListener('click', () => {
   stopPlayback();
   currentStep = 0;
@@ -2924,7 +2767,6 @@ $resetBtn.addEventListener('click', () => {
   if (steps.length) renderStep(0);
 });
 
-// ── History render ────────────────────────────────────────────────────────────
 function renderHistory() {
   const rows = AlgoEngine.getHistory();
   const $c   = document.getElementById('history-container');
@@ -2966,12 +2808,10 @@ $clearHistory.addEventListener('click', () => {
   renderHistory();
 });
 
-// ── Window resize → re-render current step ───────────────────────────────────
 window.addEventListener('resize', () => {
   if (steps.length && currentStep > 0) renderStep(Math.max(0, currentStep - 1));
 });
 
-// ── Initial bar render with default array ────────────────────────────────────
 (function initPreview() {
   const arr = [64, 34, 25, 12, 22, 11, 90];
   maxVal = Math.max(...arr);
@@ -2999,3 +2839,4 @@ window.addEventListener('resize', () => {
 
 </body>
 </html>
+
