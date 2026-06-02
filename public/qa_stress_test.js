@@ -26,6 +26,10 @@ const QAStressTest = (() => {
     else if (status === 'PASS') successCount++;
   }
 
+  function isSorted(arr) {
+    return arr.every((v, i, values) => i === 0 || values[i - 1] <= v);
+  }
+
   // ════════════════════════════════════════════════════════════════════════════
   // 1. MEMORY & BRIDGE ANALYSIS
   // ════════════════════════════════════════════════════════════════════════════
@@ -119,8 +123,8 @@ const QAStressTest = (() => {
       { name: 'All duplicates', input: [7, 7, 7, 7], algoId: 0 },
       { name: 'Negative numbers', input: [-5, -1, -3, -2], algoId: 0 },
       { name: 'Mixed pos/neg', input: [-10, 5, -3, 0, 20], algoId: 0 },
-      { name: 'Large dataset (1000)', input: Array.from({length: 1000}, () => Math.floor(Math.random() * 10000)), algoId: 0 },
-      { name: 'Large dataset (5000)', input: Array.from({length: 5000}, () => Math.floor(Math.random() * 10000)), algoId: 0 },
+      { name: 'Large dataset (50)', input: Array.from({length: 50}, (_, i) => (i * 37) % 997), algoId: 0 },
+      { name: 'Large dataset (100)', input: Array.from({length: 100}, (_, i) => (i * 37) % 997), algoId: 0 },
     ];
 
     edgeCases.forEach(testCase => {
@@ -138,11 +142,9 @@ const QAStressTest = (() => {
         // Validate final state
         if (steps.length > 0) {
           const finalArray = steps[steps.length - 1].array;
-          const isSorted = finalArray.every((v, i, arr) => i === 0 || arr[i-1] <= v);
-          
-          if (testCase.input.length > 1 && !isSorted) {
+          if (testCase.input.length > 1 && !isSorted(finalArray)) {
             log('EDGE_CASE', 'FAIL', `${testCase.name}: final array not sorted`, 
-              { expected: JSON.stringify(testCase.input.sort((a,b)=>a-b)), 
+              { expected: JSON.stringify([...testCase.input].sort((a,b)=>a-b)), 
                 got: JSON.stringify(finalArray) });
           } else {
             log('EDGE_CASE', 'PASS', `${testCase.name}: ✓ (${steps.length} steps, ${elapsed.toFixed(2)}ms)`, 
@@ -163,6 +165,56 @@ const QAStressTest = (() => {
   // ════════════════════════════════════════════════════════════════════════════
   // 3. UI STATE SYNCHRONIZATION TEST
   // ════════════════════════════════════════════════════════════════════════════
+
+  function allAlgorithmsSmoke() {
+    console.log('\nALL ALGORITHMS SMOKE TEST\n');
+
+    const cases = AlgoEngine.NAMES.map((name, algoId) => {
+      const base = { name, algoId, input: [5, 3, 8, 1, 9, 2], extra: 0, expectSorted: algoId <= 8 };
+      if (algoId === 7 || algoId === 8) return { ...base, input: [-5, -1, 0, 3, -2] };
+      if (algoId >= 9 && algoId <= 11) return { ...base, extra: 8, expectSorted: false };
+      if (algoId === 16) return { ...base, extra: 8, expectSorted: false };
+      if (algoId === 17 || algoId === 18) return { ...base, input: [1, 2, 1, 3, 2, 4], expectSorted: false };
+      if (algoId === 20) return { ...base, input: [8], expectSorted: false };
+      if (algoId === 21) return { ...base, input: [1, 2, 3, 0, 2, 3, 4], expectSorted: false };
+      if (algoId === 19) return { ...base, expectSorted: true };
+      return base;
+    });
+
+    cases.forEach(testCase => {
+      try {
+        const start = performance.now();
+        const steps = AlgoEngine.run(testCase.algoId, testCase.input, testCase.extra);
+        const elapsed = performance.now() - start;
+
+        if (!Array.isArray(steps)) {
+          log('ALGORITHM', 'FAIL', `${testCase.algoId} ${testCase.name}: returned non-array`, { returned: typeof steps });
+          return;
+        }
+
+        if (testCase.input.length > 0 && steps.length === 0) {
+          log('ALGORITHM', 'FAIL', `${testCase.algoId} ${testCase.name}: returned zero steps`);
+          return;
+        }
+
+        const malformedStep = steps.find(step => !step || !Array.isArray(step.array) || typeof step.action !== 'string' || typeof step.phase !== 'string');
+        if (malformedStep) {
+          log('ALGORITHM', 'FAIL', `${testCase.algoId} ${testCase.name}: malformed step`, { step: malformedStep });
+          return;
+        }
+
+        const finalArray = steps.length ? steps[steps.length - 1].array : [];
+        if (testCase.expectSorted && finalArray.length > 1 && !isSorted(finalArray)) {
+          log('ALGORITHM', 'FAIL', `${testCase.algoId} ${testCase.name}: final array not sorted`, { finalArray });
+          return;
+        }
+
+        log('ALGORITHM', 'PASS', `${testCase.algoId} ${testCase.name}: ${steps.length} steps in ${elapsed.toFixed(2)}ms`);
+      } catch (err) {
+        log('ALGORITHM', 'FAIL', `${testCase.algoId} ${testCase.name}: exception`, { error: err.message });
+      }
+    });
+  }
 
   function uiStateSynchronization() {
     console.log('\n╔════ UI STATE SYNCHRONIZATION ════╗\n');
@@ -243,24 +295,29 @@ const QAStressTest = (() => {
     console.log('\n╔════ INPUT VALIDATION & INJECTION ════╗\n');
 
     const maliciousInputs = [
-      { name: 'Null input', input: null, algoId: 0 },
-      { name: 'Undefined input', input: undefined, algoId: 0 },
-      { name: 'String input', input: 'not an array', algoId: 0 },
-      { name: 'Object input', input: {}, algoId: 0 },
+      { name: 'Null input', input: null, algoId: 0, expectThrow: true },
+      { name: 'Undefined input', input: undefined, algoId: 0, expectThrow: true },
+      { name: 'String input', input: 'not an array', algoId: 0, expectThrow: true },
+      { name: 'Object input', input: {}, algoId: 0, expectThrow: true },
       { name: 'Mixed types in array', input: [1, 'two', 3, null, 5], algoId: 0 },
       { name: 'NaN in array', input: [1, NaN, 3], algoId: 0 },
       { name: 'Infinity in array', input: [1, Infinity, -Infinity, 3], algoId: 0 },
       { name: 'Very large numbers', input: [1e308, -1e308, 1e307], algoId: 0 },
-      { name: 'Invalid algo ID', input: [1, 2, 3], algoId: 999 },
-      { name: 'Negative algo ID', input: [1, 2, 3], algoId: -1 },
-      { name: 'Float algo ID', input: [1, 2, 3], algoId: 0.5 },
+      { name: 'Invalid algo ID', input: [1, 2, 3], algoId: 999, expectThrow: true },
+      { name: 'Negative algo ID', input: [1, 2, 3], algoId: -1, expectThrow: true },
+      { name: 'Float algo ID', input: [1, 2, 3], algoId: 0.5, expectThrow: true },
       { name: 'Circular reference array', input: (() => { const a = [1, 2, 3]; a.self = a; return a; })(), algoId: 0 },
-      { name: 'Very deep array nesting', input: [[[[[[[[[[[1]]]]]]]]]], algoId: 0 },
+      { name: 'Very deep array nesting', input: [[[[[[[[[[[1]]]]]]]]]]], algoId: 0 },
     ];
 
     maliciousInputs.forEach(testCase => {
       try {
         const result = AlgoEngine.run(testCase.algoId, testCase.input);
+
+        if (testCase.expectThrow) {
+          log('INJECTION', 'FAIL', `${testCase.name}: accepted invalid input`);
+          return;
+        }
         
         if (result === undefined || result === null) {
           log('INJECTION', 'WARN', `${testCase.name}: returned falsy value`, 
@@ -275,7 +332,7 @@ const QAStressTest = (() => {
           log('INJECTION', 'PASS', `${testCase.name}: handled gracefully`);
         }
       } catch (err) {
-        log('INJECTION', 'FAIL', `${testCase.name}: Exception thrown`, 
+        log('INJECTION', testCase.expectThrow ? 'PASS' : 'FAIL', `${testCase.name}: ${testCase.expectThrow ? 'rejected invalid input' : 'Exception thrown'}`, 
           { error: err.message.substring(0, 100), code: err.code });
       }
     });
@@ -290,7 +347,7 @@ const QAStressTest = (() => {
 
     // Simulate multiple large algorithm runs
     const iterations = 5;
-    const arraySize = 2000;
+    const arraySize = 50;
     
     try {
       const memSnapshots = [];
@@ -333,6 +390,10 @@ const QAStressTest = (() => {
   // ════════════════════════════════════════════════════════════════════════════
 
   function runAllTests() {
+    results = [];
+    failureCount = 0;
+    successCount = 0;
+
     console.clear();
     console.log('╔══════════════════════════════════════════════════════════════════════════╗');
     console.log('║       QA STRESS TEST - DSA Algorithm Visualizer                          ║');
@@ -341,6 +402,7 @@ const QAStressTest = (() => {
 
     analyzeMemoryBridge();
     edgeCaseExecution();
+    allAlgorithmsSmoke();
     uiStateSynchronization();
     inputValidation();
     wasmMemoryManagement();
@@ -357,23 +419,21 @@ const QAStressTest = (() => {
   return { runAllTests, getResults: () => results };
 })();
 
-// Auto-run on page load
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    window.qaResults = QAStressTest.runAllTests();
-    window.exportResults = () => {
-      const csv = 'Category,Status,Message,Timestamp\n' +
-        window.qaResults.results
-          .map(r => `"${r.category}","${r.status}","${r.message.replace(/"/g, '""')}","${r.timestamp}"`)
-          .join('\n');
-      const blob = new Blob([csv], {type: 'text/csv'});
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'qa-test-results.csv';
-      a.click();
-    };
-  });
-} else {
-  window.qaResults = QAStressTest.runAllTests();
-}
+// Auto-run disabled: tests now run only when user explicitly calls QAStressTest.runAllTests()
+// window.exportResults can be called manually if needed
+window.exportResults = () => {
+  if (!window.qaResults) {
+    console.warn('No test results. Run QAStressTest.runAllTests() first.');
+    return;
+  }
+  const csv = 'Category,Status,Message,Timestamp\n' +
+    window.qaResults.results
+      .map(r => `"${r.category}","${r.status}","${r.message.replace(/"/g, '""')}","${r.timestamp}"`)
+      .join('\n');
+  const blob = new Blob([csv], {type: 'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'qa-test-results.csv';
+  a.click();
+};

@@ -15,9 +15,38 @@ const AlgoEngine = (() => {
   let ready  = false;
 
   const NAMES = [
-    "Bubble Sort","Selection Sort","Insertion Sort",
-    "Merge Sort","Quick Sort","Binary Search"
+    'Bubble Sort','Selection Sort','Insertion Sort','Merge Sort','Quick Sort',
+    'Heap Sort','Shell Sort','Counting Sort','Radix Sort',
+    'Linear Search','Binary Search','Jump Search',
+    'Linked List','Stack','Queue',
+    'BST Insert+Inorder','BST Search',
+    'Graph BFS','Graph DFS',
+    'Min-Heap',
+    'Fibonacci DP','LCS DP',
+    'Hash Table'
   ];
+
+  const CATEGORY = [
+    'sort','sort','sort','sort','sort','sort','sort','sort','sort',
+    'search','search','search',
+    'ds','ds','ds','tree','tree',
+    'graph','graph',
+    'heap',
+    'dp','dp',
+    'hash'
+  ];
+
+  function validateInputs(algoId, inputArray) {
+    if (typeof algoId !== 'number' || !Number.isInteger(algoId)) {
+      throw new Error(`Invalid algorithm ID: ${algoId}. Must be an integer.`);
+    }
+    if (algoId < 0 || algoId >= NAMES.length) {
+      throw new Error(`Invalid algorithm ID: ${algoId}. Must be in range [0, ${NAMES.length - 1}].`);
+    }
+    if (!Array.isArray(inputArray)) {
+      throw new Error(`Input must be an array, got ${typeof inputArray}`);
+    }
+  }
 
   // Initialise the WASM module
   AlgoEngineWASM().then(mod => {
@@ -35,6 +64,8 @@ const AlgoEngine = (() => {
    * parses it, and returns the same shape as the JS sim.
    */
   function run(algoId, inputArray, extra = 0) {
+    validateInputs(algoId, inputArray);
+
     if (!ready) {
       console.warn('[AlgoEngine] WASM not ready yet — falling back to empty steps');
       return [];
@@ -44,19 +75,31 @@ const AlgoEngine = (() => {
 
     // Allocate C string in WASM heap
     const len      = Module.lengthBytesUTF8(jsonStr) + 1;
-    const ptr      = Module._malloc(len);
-    Module.stringToUTF8(jsonStr, ptr, len);
+    let ptr        = null;
+    let stepsPtr   = null;
 
-    // Call C++ engine
-    Module._run_algorithm(algoId, ptr, extra);
-    Module._free(ptr);
+    try {
+      ptr = Module._malloc(len);
+      if (!ptr) {
+        throw new Error('[AlgoEngine] WASM malloc failed — heap exhausted?');
+      }
+      Module.stringToUTF8(jsonStr, ptr, len);
 
-    // Retrieve step timeline
-    const stepsPtr  = Module._get_steps_json();
-    const stepsJson = Module.UTF8ToString(stepsPtr);
-    Module._free_result(stepsPtr);
+      // Call C++ engine
+      Module._run_algorithm(algoId, ptr, extra);
 
-    return JSON.parse(stepsJson);
+      // Retrieve step timeline
+      stepsPtr  = Module._get_steps_json();
+      if (!stepsPtr) {
+        throw new Error('[AlgoEngine] WASM get_steps_json returned null');
+      }
+      const stepsJson = Module.UTF8ToString(stepsPtr);
+      return JSON.parse(stepsJson);
+    } finally {
+      // Always free allocated memory, even on exception
+      if (ptr) Module._free(ptr);
+      if (stepsPtr) Module._free_result(stepsPtr);
+    }
   }
 
   /**
@@ -71,5 +114,5 @@ const AlgoEngine = (() => {
     return JSON.parse(json);
   }
 
-  return { run, getHistory, NAMES };
+  return { run, getHistory, NAMES, CATEGORY };
 })();

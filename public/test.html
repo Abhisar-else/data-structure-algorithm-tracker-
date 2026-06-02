@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DSA Visualizer — QA Test Suite</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1e1e1e;
+            color: #e0e0e0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1 {
+            color: #4fc3f7;
+            margin-bottom: 20px;
+        }
+        .controls {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        button {
+            padding: 10px 20px;
+            background: #4fc3f7;
+            border: none;
+            color: #000;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #29b6f6;
+        }
+        button:active {
+            transform: scale(0.98);
+        }
+        #console {
+            background: #0d0d0d;
+            border: 1px solid #444;
+            padding: 15px;
+            border-radius: 4px;
+            max-height: 600px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .success {
+            color: #4caf50;
+        }
+        .error {
+            color: #f44336;
+        }
+        .warning {
+            color: #ff9800;
+        }
+        .info {
+            color: #2196f3;
+        }
+        a {
+            color: #4fc3f7;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 DSA Visualizer — QA Test Suite</h1>
+    <p>Run comprehensive tests on the algorithm engine. Results will appear below.</p>
+    
+    <div class="controls">
+        <button onclick="runTests()">▶ Run All Tests</button>
+        <button onclick="clearConsole()">🗑 Clear Console</button>
+        <button onclick="exportResults()">💾 Export Results (CSV)</button>
+        <button onclick="goBack()">← Back to Visualizer</button>
+    </div>
+
+    <div id="console"></div>
+
+    <!-- Load engine and tests -->
+    <script src="engine.sim.js"></script>
+    <script src="qa_stress_test.js"></script>
+    <script>
+        const consoleEl = document.getElementById('console');
+
+        function log(text, type = 'info') {
+            const className = type.toLowerCase();
+            const span = document.createElement('div');
+            span.className = className;
+            span.textContent = text;
+            consoleEl.appendChild(span);
+            consoleEl.scrollTop = consoleEl.scrollHeight;
+        }
+
+        function clearConsole() {
+            consoleEl.innerHTML = '';
+            log('Console cleared.', 'info');
+        }
+
+        function runTests() {
+            clearConsole();
+            log('⏱ Starting QA test suite...', 'info');
+            
+            try {
+                const result = QAStressTest.runAllTests();
+                log(`\n✓ Test suite completed`, 'success');
+                log(`Passed: ${result.successCount}`, 'success');
+                log(`Failed: ${result.failureCount}`, result.failureCount > 0 ? 'error' : 'success');
+                log(`Total: ${result.results.length}`, 'info');
+                
+                // Store globally for export
+                window.qaResults = result;
+            } catch (err) {
+                log(`✗ Test suite error: ${err.message}`, 'error');
+                console.error(err);
+            }
+        }
+
+        function exportResults() {
+            if (!window.qaResults) {
+                log('❌ No test results to export. Run tests first.', 'warning');
+                return;
+            }
+
+            const csv = 'Category,Status,Message,Timestamp\n' +
+                window.qaResults.results
+                    .map(r => `"${r.category}","${r.status}","${r.message.replace(/"/g, '""')}","${r.timestamp}"`)
+                    .join('\n');
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `qa-test-results-${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+            log('✓ Results exported to CSV', 'success');
+        }
+
+        function goBack() {
+            window.location.href = 'index.html';
+        }
+
+        // Initial message
+        log('QA Test Suite Ready', 'info');
+        log('Click "Run All Tests" to begin', 'info');
+    </script>
+</body>
+</html>
