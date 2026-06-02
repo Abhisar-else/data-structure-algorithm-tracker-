@@ -180,4 +180,4 @@ The step recorder is data-structure agnostic — just change the `array` field i
 #to run 
  emsdk\emsdk_env.bat                                                              
  
-emcc src/engine.cpp -o public/engine.js -sWASM=1  -sALLOW_MEMORY_GROWTH=1 -sFORCE_FILESYSTEM=1 -sMODULARIZE=1 -sEXPORT_NAME="AlgoEngineWASM" -sUSE_SQLITE3=1 --bind -lidbfs.js -o2 -std=c++17                                                                                         
+emcc src/engine.cpp -o public/engine.js -sWASM=1  -sALLOW_MEMORY_GROWTH=1 -sFORCE_FILESYSTEM=1 -sMODULARIZE=1 -sEXPORT_NAME="AlgoEngineWASM" -sUSE_SQLITE3=1 --bind -lidbfs.js -O2 -std=c++17                                                                                         
