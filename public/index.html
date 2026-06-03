@@ -1437,7 +1437,6 @@ footer {
 <!-- ── Scripts ─────────────────────────────────────────────────────────────── -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.47.0/min/vs/loader.min.js"></script>
 <script src="engine.sim.js"></script>
-<script src="qa_stress_test.js"></script>
 <script>
 const SOURCE_MAP = {
   0: {
@@ -1753,6 +1752,30 @@ const SOURCE_MAP = {
       '}',
     ]
   },
+  23: {
+    title: 'Dijkstra::run()',
+    lines: [
+      'void Dijkstra::run(vector<int>& arr, int src) {',
+      '  // arr = triplets: u, weight, v',
+      '  priority_queue<pair<int,int>,',
+      '    vector<pair<int,int>>, greater<>> pq;',
+      '  dist[src] = 0; pq.push({0, src});',
+      '  while (!pq.empty()) {',
+      '    auto [d, u] = pq.top(); pq.pop(); // ← settle u',
+      '    if (settled[u]) continue;',
+      '    settled[u] = true;',
+      '    for (auto [v, w] : adj[u]) {',
+      '      int alt = d + w;              // relax edge',
+      '      if (alt < dist[v]) {',
+      '        dist[v] = alt;              // ← update dist',
+      '        prev[v] = u;',
+      '        pq.push({alt, v});',
+      '      }',
+      '    }',
+      '  }',
+      '}',
+    ]
+  },
 };
 
 const $codeTitle = document.getElementById('code-title');
@@ -1996,7 +2019,21 @@ $speedSlider.addEventListener('input', () => {
 
 $genBtn.addEventListener('click', () => {
   const n   = 16;
-  const arr = Array.from({length: n}, () => Math.floor(Math.random() * 95) + 5);
+ $genBtn.addEventListener('click', () => {
+  if (selectedAlgo === 23) {  // Dijkstra: triplets u,w,v
+    const edges = [[1,4,2],[1,2,3],[2,3,3],[3,5,4],[4,5,1],[2,1,4]];
+    $arrayInput.value = edges.map(e => e.join(',')).join(', ');
+    $targetInput.value = '1';  // source node
+  } else if (selectedAlgo === 17 || selectedAlgo === 18) {  // BFS/DFS: pairs
+    const pairs = [[1,2],[2,3],[3,4],[4,5],[1,5],[2,4]];
+    $arrayInput.value = pairs.map(e => e.join(',')).join(', ');
+  } else {
+    const arr = Array.from({length: 16}, () => Math.floor(Math.random() * 95) + 5);
+    $arrayInput.value = arr.join(', ');
+    if (new Set([9,10,11,16]).has(selectedAlgo))
+      $targetInput.value = arr[Math.floor(Math.random() * arr.length)];
+  }
+});
   $arrayInput.value = arr.join(', ');
   if (selectedAlgo === 5) {
     $targetInput.value = arr[Math.floor(Math.random() * n)];
@@ -2693,20 +2730,62 @@ function renderGraph(s) {
 
   const { W, H } = getStructCanvasSize();
   const R = 22;
-  const CR = Math.max(60, Math.min(W, H) / 2 - R - 20);
   const cx = W / 2, cy = H / 2;
 
   const nodeSet = new Set();
   edgePairs.forEach(([u, v]) => { nodeSet.add(u); nodeSet.add(v); });
   const nodes = Array.from(nodeSet).sort((a,b)=>a-b);
   const n = nodes.length;
-  const angleStep = (2 * Math.PI) / Math.max(n, 1);
 
+  // Force-directed layout: repulsion between nodes + spring attraction on edges
   const nodePos = {};
+  // Seed positions on circle to avoid degenerate starts
+  const seedR = Math.min(W, H) * 0.35;
   nodes.forEach((id, i) => {
-    const angle = i * angleStep - Math.PI / 2;
-    nodePos[id] = { x: cx + CR * Math.cos(angle), y: cy + CR * Math.sin(angle) };
+    const angle = (i / Math.max(n, 1)) * 2 * Math.PI - Math.PI / 2;
+    nodePos[id] = { x: cx + seedR * Math.cos(angle), y: cy + seedR * Math.sin(angle) };
   });
+
+  // Run iterations only once per render (not animated — deterministic final pos)
+  const ITER = 120, K = Math.sqrt((W * H) / Math.max(n, 1)), IDEAL = K * 1.1;
+  const REPEL = K * K * 2.5, ATTRACT = 0.12, DAMP = 0.88;
+  const vx = {}, vy = {};
+  nodes.forEach(id => { vx[id] = 0; vy[id] = 0; });
+
+  for (let iter = 0; iter < ITER; iter++) {
+    // Repulsion: every pair
+    for (let a = 0; a < nodes.length; a++) {
+      for (let b = a + 1; b < nodes.length; b++) {
+        const ai = nodes[a], bi = nodes[b];
+        const dx = nodePos[ai].x - nodePos[bi].x;
+        const dy = nodePos[ai].y - nodePos[bi].y;
+        const dist2 = Math.max(dx * dx + dy * dy, 0.01);
+        const dist = Math.sqrt(dist2);
+        const force = REPEL / dist2;
+        const fx = (dx / dist) * force, fy = (dy / dist) * force;
+        vx[ai] += fx; vy[ai] += fy;
+        vx[bi] -= fx; vy[bi] -= fy;
+      }
+    }
+    // Attraction: connected edges
+    edgePairs.forEach(([u, v]) => {
+      if (!nodePos[u] || !nodePos[v]) return;
+      const dx = nodePos[v].x - nodePos[u].x;
+      const dy = nodePos[v].y - nodePos[u].y;
+      const dist = Math.max(Math.sqrt(dx * dx + dy * dy), 0.01);
+      const force = ATTRACT * (dist - IDEAL);
+      const fx = (dx / dist) * force, fy = (dy / dist) * force;
+      vx[u] += fx; vy[u] += fy;
+      vx[v] -= fx; vy[v] -= fy;
+    });
+    // Integrate + damp + clamp to canvas
+    const pad = 36;
+    nodes.forEach(id => {
+      vx[id] *= DAMP; vy[id] *= DAMP;
+      nodePos[id].x = Math.max(pad, Math.min(W - pad, nodePos[id].x + vx[id]));
+      nodePos[id].y = Math.max(pad, Math.min(H - pad, nodePos[id].y + vy[id]));
+    });
+  }
 
   const visitedSet   = new Set(data.visited  || []);
   const frontierSet  = new Set(data.frontier || []);
@@ -3051,4 +3130,3 @@ window.addEventListener('resize', () => {
 
 </body>
 </html>
-

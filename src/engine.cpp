@@ -56,6 +56,7 @@
 #include <queue>
 #include <stack>
 #include <map>
+#include <set>
 
 using namespace emscripten;
 
@@ -365,12 +366,14 @@ public:
     explicit CountingSort(StepRecorder& r):Algorithm(r){}
     void run(std::vector<int>& arr,int=0) override {
         if(arr.empty()) return;
+        int mn=*std::min_element(arr.begin(),arr.end());
         int mx=*std::max_element(arr.begin(),arr.end());
-        std::vector<int> cnt(mx+1,0);
-        rec(arr,-1,-1,"Count frequencies (max="+std::to_string(mx)+")","pivot");
+        int offset = -mn;  // shift so minimum maps to index 0
+        std::vector<int> cnt(mx-mn+1,0);
+        rec(arr,-1,-1,"Count frequencies (min="+std::to_string(mn)+", max="+std::to_string(mx)+")","pivot");
         for(int i=0;i<(int)arr.size();++i){
-            cnt[arr[i]]++;
-            rec(arr,i,-1,"Count["+std::to_string(arr[i])+"]="+std::to_string(cnt[arr[i]]),"compare");
+            cnt[arr[i]-mn]++;
+            rec(arr,i,-1,"Count["+std::to_string(arr[i])+"]="+std::to_string(cnt[arr[i]-mn]),"compare");
         }
         rec(cnt,-1,-1,"Frequency array built","pivot");
         int idx=0;
@@ -1035,6 +1038,122 @@ static void record(const std::vector<int>& a,int i,int j,
 
 static int count_phase(const std::string& p){ return g_recorder?g_recorder->count_phase(p):0; }
 
+// ──────────────────────────────────────────────────────────────────────────────
+// DIJKSTRA — shortest-path, input = triplets (u, weight, v)
+// extra JSON: {"type":"dijkstra","edges":[{u,v,w}...],"visited":[...],"frontier":[{node,dist}...],"dist":{node:val},"current":N,"path":{node:{prev}}}
+// ──────────────────────────────────────────────────────────────────────────────
+
+class Dijkstra : public Algorithm {
+    struct Edge { int u, v, w; };
+    struct FrontierNode { int node, dist; };
+public:
+    explicit Dijkstra(StepRecorder& r):Algorithm(r){}
+
+    void run(std::vector<int>& arr, int source=0) override {
+        if(arr.empty()){rec(arr,-1,-1,"Empty input","done");return;}
+        if(arr.size()%3!=0){
+            rec(arr,-1,-1,"Dijkstra expects triplets: u weight v","done");return;
+        }
+
+        std::vector<Edge> edges;
+        std::map<int,std::vector<std::pair<int,int>>> adj; // node -> [(neighbour, weight)]
+        std::set<int> nodeSet;
+
+        for(int i=0;i+2<(int)arr.size();i+=3){
+            int u=arr[i],w=arr[i+1],v=arr[i+2];
+            if(w<0){rec(arr,-1,-1,"Negative edge weights not supported","done");return;}
+            edges.push_back({u,v,w});
+            adj[u].push_back({v,w});
+            nodeSet.insert(u); nodeSet.insert(v);
+        }
+
+        std::vector<int> nodeList(nodeSet.begin(),nodeSet.end());
+        std::sort(nodeList.begin(),nodeList.end());
+
+        int src = nodeSet.count(source)?source:nodeList[0];
+
+        std::map<int,int>  dist, prev_node;
+        for(int n:nodeList){ dist[n]=-1; prev_node[n]=-1; }
+        dist[src]=0;
+
+        std::vector<int> visited_order;
+        std::vector<FrontierNode> frontier={{src,0}};
+        std::set<int> settled;
+
+        auto snap=[&](int current)->std::string{
+            std::ostringstream o;
+            o<<"{\"type\":\"dijkstra\","
+             <<"\"current\":"<<current<<","
+             <<"\"edges\":[";
+            bool first=true;
+            for(auto& e:edges){
+                if(!first)o<<","; first=false;
+                o<<"{\"u\":"<<e.u<<",\"v\":"<<e.v<<",\"w\":"<<e.w<<"}";
+            }
+            o<<"],\"visited\":[";
+            for(int i=0;i<(int)visited_order.size();++i){if(i)o<<",";o<<visited_order[i];}
+            o<<"],\"frontier\":[";
+            bool ff=true;
+            for(auto& f:frontier){
+                if(!ff)o<<","; ff=false;
+                o<<"{\"node\":"<<f.node<<",\"dist\":"<<f.dist<<"}";
+            }
+            o<<"],\"dist\":{";
+            bool fd=true;
+            for(auto& kv:dist){
+                if(!fd)o<<","; fd=false;
+                o<<"\""<<kv.first<<"\":"<<kv.second;
+            }
+            o<<"},\"path\":{";
+            bool fp=true;
+            for(auto& kv:prev_node){
+                if(!fp)o<<","; fp=false;
+                o<<"\""<<kv.first<<"\":{\"prev\":"<<kv.second<<"}";
+            }
+            o<<"}}";
+            return o.str();
+        };
+
+        std::vector<int> disp=nodeList;
+        rec(disp,-1,-1,"Dijkstra from source "+std::to_string(src),"pivot",-1,snap(src));
+
+        while(!frontier.empty()){
+            // find min-dist in frontier (priority queue behaviour)
+            auto minIt=std::min_element(frontier.begin(),frontier.end(),
+                [](const FrontierNode& a,const FrontierNode& b){
+                    return a.dist<b.dist||(a.dist==b.dist&&a.node<b.node);
+                });
+            FrontierNode cur=*minIt;
+            frontier.erase(minIt);
+
+            int u=cur.node, du=cur.dist;
+            if(settled.count(u)) continue;
+            if(du!=dist[u]&&dist[u]!=-1) continue;
+
+            settled.insert(u);
+            visited_order.push_back(u);
+            rec(disp,-1,-1,"Settle "+std::to_string(u)+" (d="+std::to_string(du)+")","visit",-1,snap(u));
+
+            for(auto& [v,w]:adj[u]){
+                if(settled.count(v)) continue;
+                int alt=du+w;
+                rec(disp,-1,-1,"Relax "+std::to_string(u)+"→"+std::to_string(v)+" via w="+std::to_string(w),"compare",-1,snap(u));
+                if(dist[v]==-1||alt<dist[v]){
+                    dist[v]=alt;
+                    prev_node[v]=u;
+                    // remove old frontier entry if exists
+                    frontier.erase(std::remove_if(frontier.begin(),frontier.end(),
+                        [v](const FrontierNode& f){return f.node==v;}),frontier.end());
+                    frontier.push_back({v,alt});
+                    rec(disp,-1,-1,"Update dist["+std::to_string(v)+"]="+std::to_string(alt),"pivot",-1,snap(v));
+                }
+            }
+        }
+
+        rec(disp,-1,-1,"Dijkstra complete — "+std::to_string(visited_order.size())+" nodes settled","done",-1,snap(-1));
+    }
+};
+
 static const char* ALGO_NAMES[] = {
     "Bubble Sort","Selection Sort","Insertion Sort","Merge Sort","Quick Sort",
     "Heap Sort","Shell Sort","Counting Sort","Radix Sort",
@@ -1044,9 +1163,10 @@ static const char* ALGO_NAMES[] = {
     "Graph BFS","Graph DFS",
     "Min-Heap",
     "Fibonacci DP","LCS DP",
-    "Hash Table"
+    "Hash Table",
+    "Dijkstra"
 };
-static const int NUM_ALGOS = 23;
+static const int NUM_ALGOS = 24;
 
 static int run_algorithm_impl(int id,const std::string& data_json,int extra){
     if(!g_recorder){
@@ -1055,7 +1175,7 @@ static int run_algorithm_impl(int id,const std::string& data_json,int extra){
     g_recorder->clear();
 
     // Parse input
-    std::vector<iPnt> arr;
+    std::vector<int> arr;
     std::string nums;
     for(char c:data_json) if(c!='['&&c!=']'&&c!=' ') nums+=c;
     std::istringstream ss(nums); std::string tok;
@@ -1090,6 +1210,7 @@ static int run_algorithm_impl(int id,const std::string& data_json,int extra){
         case 20:{ FibDP        a(*g_recorder); a.run(arr,extra); break; }
         case 21:{ LCSAlgo      a(*g_recorder); a.run(arr,extra); break; }
         case 22:{ HashTableOps a(*g_recorder); a.run(arr,extra); break; }
+        case 23:{ Dijkstra     a(*g_recorder); a.run(arr,extra); break; }
         default: break;
     }
 
