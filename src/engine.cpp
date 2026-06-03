@@ -377,8 +377,8 @@ public:
         }
         rec(cnt,-1,-1,"Frequency array built","pivot");
         int idx=0;
-        for(int v=0;v<=mx;++v){
-            while(cnt[v]-->0){
+        for(int v=mn;v<=mx;++v){
+            while(cnt[v-mn]-->0){
                 arr[idx]=v;
                 rec(arr,idx,-1,"Place value "+std::to_string(v)+" at pos "+std::to_string(idx),"swap");
                 idx++;

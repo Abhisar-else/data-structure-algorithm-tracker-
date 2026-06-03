@@ -1955,6 +1955,18 @@ document.querySelectorAll('.algo-btn').forEach(btn => {
     selectedAlgo = parseInt(btn.dataset.algo);
 
     $targetRow.classList.toggle('visible', SEARCH_ALGOS.has(selectedAlgo));
+    if (SEARCH_ALGOS.has(selectedAlgo)) {
+      const isDijkstra = selectedAlgo === 23;
+      const labelEl = $targetRow.querySelector('label');
+      if (labelEl) {
+        labelEl.textContent = isDijkstra ? 'Source Node' : 'Search Target';
+      }
+      if ($targetInput) {
+        $targetInput.placeholder = isDijkstra ? 'e.g. 1' : 'e.g. 25';
+        $targetInput.setAttribute('aria-label', isDijkstra ? 'Source node to start Dijkstra from' : 'Value to search for');
+        $targetInput.value = isDijkstra ? '1' : '25';
+      }
+    }
 
     if ($currentCat) {
       const cat = CAT_LABEL[selectedAlgo] ?? 'sort';
@@ -2018,8 +2030,6 @@ $speedSlider.addEventListener('input', () => {
 });
 
 $genBtn.addEventListener('click', () => {
-  const n   = 16;
- $genBtn.addEventListener('click', () => {
   if (selectedAlgo === 23) {  // Dijkstra: triplets u,w,v
     const edges = [[1,4,2],[1,2,3],[2,3,3],[3,5,4],[4,5,1],[2,1,4]];
     $arrayInput.value = edges.map(e => e.join(',')).join(', ');
@@ -2030,13 +2040,9 @@ $genBtn.addEventListener('click', () => {
   } else {
     const arr = Array.from({length: 16}, () => Math.floor(Math.random() * 95) + 5);
     $arrayInput.value = arr.join(', ');
-    if (new Set([9,10,11,16]).has(selectedAlgo))
+    if (new Set([9, 10, 11, 16]).has(selectedAlgo)) {
       $targetInput.value = arr[Math.floor(Math.random() * arr.length)];
-  }
-});
-  $arrayInput.value = arr.join(', ');
-  if (selectedAlgo === 5) {
-    $targetInput.value = arr[Math.floor(Math.random() * n)];
+    }
   }
 });
 
@@ -2864,20 +2870,64 @@ function renderDijkstra(s) {
 
   const { W, H } = getStructCanvasSize();
   const R = 22;
-  const CR = Math.max(60, Math.min(W, H) / 2 - R - 32);
-  const cxC = W / 2, cyC = H / 2;
+  const cx = W / 2, cy = H / 2;
 
   const nodeSet = new Set();
   data.edges.forEach(e => { nodeSet.add(e.u); nodeSet.add(e.v); });
   const nodes = Array.from(nodeSet).sort((a, b) => a - b);
   const n = nodes.length;
-  const angleStep = (2 * Math.PI) / Math.max(n, 1);
 
+  const edgePairs = data.edges.map(e => [e.u, e.v]);
+
+  // Force-directed layout: repulsion between nodes + spring attraction on edges
   const pos = {};
+  // Seed positions on circle to avoid degenerate starts
+  const seedR = Math.min(W, H) * 0.35;
   nodes.forEach((id, i) => {
-    const angle = i * angleStep - Math.PI / 2;
-    pos[id] = { x: cxC + CR * Math.cos(angle), y: cyC + CR * Math.sin(angle) };
+    const angle = (i / Math.max(n, 1)) * 2 * Math.PI - Math.PI / 2;
+    pos[id] = { x: cx + seedR * Math.cos(angle), y: cy + seedR * Math.sin(angle) };
   });
+
+  // Run iterations only once per render (not animated — deterministic final pos)
+  const ITER = 120, K = Math.sqrt((W * H) / Math.max(n, 1)), IDEAL = K * 1.1;
+  const REPEL = K * K * 2.5, ATTRACT = 0.12, DAMP = 0.88;
+  const vx = {}, vy = {};
+  nodes.forEach(id => { vx[id] = 0; vy[id] = 0; });
+
+  for (let iter = 0; iter < ITER; iter++) {
+    // Repulsion: every pair
+    for (let a = 0; a < nodes.length; a++) {
+      for (let b = a + 1; b < nodes.length; b++) {
+        const ai = nodes[a], bi = nodes[b];
+        const dx = pos[ai].x - pos[bi].x;
+        const dy = pos[ai].y - pos[bi].y;
+        const dist2 = Math.max(dx * dx + dy * dy, 0.01);
+        const dist = Math.sqrt(dist2);
+        const force = REPEL / dist2;
+        const fx = (dx / dist) * force, fy = (dy / dist) * force;
+        vx[ai] += fx; vy[ai] += fy;
+        vx[bi] -= fx; vy[bi] -= fy;
+      }
+    }
+    // Attraction: connected edges
+    edgePairs.forEach(([u, v]) => {
+      if (!pos[u] || !pos[v]) return;
+      const dx = pos[v].x - pos[u].x;
+      const dy = pos[v].y - pos[u].y;
+      const dist = Math.max(Math.sqrt(dx * dx + dy * dy), 0.01);
+      const force = ATTRACT * (dist - IDEAL);
+      const fx = (dx / dist) * force, fy = (dy / dist) * force;
+      vx[u] += fx; vy[u] += fy;
+      vx[v] -= fx; vy[v] -= fy;
+    });
+    // Integrate + damp + clamp to canvas
+    const pad = 36;
+    nodes.forEach(id => {
+      vx[id] *= DAMP; vy[id] *= DAMP;
+      pos[id].x = Math.max(pad, Math.min(W - pad, pos[id].x + vx[id]));
+      pos[id].y = Math.max(pad, Math.min(H - pad, pos[id].y + vy[id]));
+    });
+  }
 
   const visitedSet  = new Set(data.visited  || []);
   const frontierIds = new Set((data.frontier || []).map(f => f.node));

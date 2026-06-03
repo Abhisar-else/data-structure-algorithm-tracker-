@@ -23,7 +23,8 @@ const AlgoEngine = (() => {
     'Graph BFS','Graph DFS',
     'Min-Heap',
     'Fibonacci DP','LCS DP',
-    'Hash Table'
+    'Hash Table',
+    'Dijkstra'
   ];
 
   const CATEGORY = [
@@ -33,7 +34,8 @@ const AlgoEngine = (() => {
     'graph','graph',
     'heap',
     'dp','dp',
-    'hash'
+    'hash',
+    'graph'
   ];
 
   function validateInputs(algoId, inputArray) {
