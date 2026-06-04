@@ -23,6 +23,7 @@
   --accent:      #00e5ff;
   --accent-dim:  rgba(0,229,255,.08);
   --accent-glow: rgba(0,229,255,.25);
+  --accent-strong: rgba(0,229,255,.18);
   --gold:        #ffd166;
   --gold-dim:    rgba(255,209,102,.10);
   --red:         #ff4757;
@@ -66,6 +67,18 @@
   --ease-spring:cubic-bezier(.34, 1.56, .64, 1);
 
   --bar-w: clamp(8px, 2vw, 24px);
+
+  /* ── Category color tokens (centralized) ── */
+  --cat-sort-bg:    rgba(0,229,255,.10);
+  --cat-sort-fg:    var(--accent);
+  --cat-search-bg:  var(--gold-dim);
+  --cat-search-fg:  var(--gold);
+  --cat-ds-bg:      var(--purple-dim);
+  --cat-ds-fg:      var(--purple);
+  --cat-graph-bg:   rgba(59,130,246,.10);
+  --cat-graph-fg:   var(--blue);
+  --cat-dp-bg:      var(--green-dim);
+  --cat-dp-fg:      var(--green);
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -323,6 +336,23 @@ aside.open { transform: translateX(0); }
   gap: var(--sp-2);
 }
 
+/* ── Group header icon ── */
+.group-icon {
+  width: 18px; height: 18px;
+  border-radius: var(--r-sm);
+  display: grid;
+  place-items: center;
+  font-size: .6rem;
+  flex-shrink: 0;
+  font-family: var(--mono);
+  font-weight: 700;
+}
+.gi-sort   { background: var(--cat-sort-bg);   color: var(--cat-sort-fg); }
+.gi-search { background: var(--cat-search-bg); color: var(--cat-search-fg); }
+.gi-ds     { background: var(--cat-ds-bg);     color: var(--cat-ds-fg); }
+.gi-graph  { background: var(--cat-graph-bg);  color: var(--cat-graph-fg); }
+.gi-dp     { background: var(--cat-dp-bg);     color: var(--cat-dp-fg); }
+
 .sub-section-label {
   font-size: .55rem;
   font-family: var(--mono);
@@ -346,6 +376,7 @@ aside.open { transform: translateX(0); }
 .group-header {
   display: flex;
   align-items: center;
+  gap: var(--sp-3);
   padding: var(--sp-3) var(--sp-5);
   font-family: var(--mono);
   font-size: .72rem;
@@ -357,24 +388,32 @@ aside.open { transform: translateX(0); }
   -webkit-user-select: none;
   list-style: none;
   min-height: var(--touch);
-  transition: color var(--dur-fast), background var(--dur-fast);
+  border-left: 2px solid transparent;
+  transition: color var(--dur-fast), background var(--dur-fast), border-color var(--dur-fast);
 }
 .group-header::-webkit-details-marker { display: none; }
 .group-header:hover {
-  color: var(--accent);
-  background: rgba(0, 229, 255, 0.02);
+  color: var(--text);
+  background: rgba(255,255,255,.02);
 }
-.group-header::after {
-  content: '▼';
-  font-size: .55rem;
+.algo-group[open] > .group-header {
+  color: var(--text);
+  border-left-color: var(--accent);
+  background: rgba(0,229,255,.02);
+}
+.group-label { flex: 1; min-width: 0; }
+
+.group-chevron {
+  width: 16px; height: 16px;
+  flex-shrink: 0;
   color: var(--text-muted);
-  margin-left: auto;
   transition: transform var(--dur-fast) var(--ease), color var(--dur-fast);
 }
-.algo-group[open] .group-header::after {
-  transform: rotate(-180deg);
+.algo-group[open] .group-chevron {
+  transform: rotate(90deg);
   color: var(--accent);
 }
+
 .group-content {
   padding: 0 var(--sp-5) var(--sp-4) var(--sp-5);
 }
@@ -384,7 +423,9 @@ aside.open { transform: translateX(0); }
   background: var(--surface-3);
   padding: 2px 6px;
   border-radius: var(--r-sm);
-  margin-left: var(--sp-3);
+  font-family: var(--mono);
+  flex-shrink: 0;
+  border: 1px solid var(--border-dim);
 }
 
 .algo-grid {
@@ -397,7 +438,7 @@ aside.open { transform: translateX(0); }
   min-height: var(--touch);
   background: transparent;
   border: 1px solid var(--border);
-  color: var(--text);
+  color: var(--text-mid);
   padding: var(--sp-2) var(--sp-2);
   border-radius: var(--r-md);
   font-family: var(--mono);
@@ -405,14 +446,16 @@ aside.open { transform: translateX(0); }
   cursor: pointer;
   text-align: center;
   touch-action: manipulation;
+  position: relative;
+  overflow: hidden;
   transition:
     border-color var(--dur-fast) var(--ease),
     color        var(--dur-fast) var(--ease),
     background   var(--dur-fast) var(--ease),
     box-shadow   var(--dur-fast) var(--ease);
-  position: relative;
 }
 
+/* Category-tinted hover/active — set per group via data-cat */
 .algo-btn:hover {
   border-color: var(--accent);
   color: var(--accent);
@@ -421,24 +464,34 @@ aside.open { transform: translateX(0); }
 
 .algo-btn:active {
   transform: scale(.97);
-  background: rgba(0,229,255,.12);
 }
 
+/* Active/selected state — prominent ring */
 .algo-btn.active {
   border-color: var(--accent);
   color: var(--accent);
-  background: var(--accent-dim);
-  box-shadow: 0 0 0 1px var(--accent) inset;
+  background: var(--accent-strong);
+  box-shadow: 0 0 0 1px var(--accent) inset, 0 0 12px var(--accent-glow);
+}
+.algo-btn.active::after {
+  content: '';
+  position: absolute;
+  top: 3px; right: 3px;
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 4px var(--accent);
 }
 
 .algo-tag {
   display: block;
   font-size: .56rem;
-  color: var(--text-dim);
+  color: var(--text-muted);
   margin-top: 2px;
   line-height: 1;
 }
-.algo-btn.active .algo-tag { color: var(--accent); opacity: .65; }
+.algo-btn.active .algo-tag { color: rgba(0,229,255,.55); }
+.algo-btn:hover .algo-tag { color: rgba(0,229,255,.45); }
 
 .algo-category {
   font-size: .55rem;
@@ -449,11 +502,11 @@ aside.open { transform: translateX(0); }
   border-radius: 3px;
   margin-left: auto;
 }
-.cat-sort   { background: rgba(0,229,255,.1);  color: var(--accent); }
-.cat-search { background: var(--gold-dim);      color: var(--gold); }
-.cat-ds     { background: var(--purple-dim);    color: var(--purple); }
-.cat-graph  { background: rgba(59,130,246,.1);  color: var(--blue); }
-.cat-dp     { background: var(--green-dim);     color: var(--green); }
+.cat-sort   { background: var(--cat-sort-bg);   color: var(--cat-sort-fg); }
+.cat-search { background: var(--cat-search-bg); color: var(--cat-search-fg); }
+.cat-ds     { background: var(--cat-ds-bg);     color: var(--cat-ds-fg); }
+.cat-graph  { background: var(--cat-graph-bg);  color: var(--cat-graph-fg); }
+.cat-dp     { background: var(--cat-dp-bg);     color: var(--cat-dp-fg); }
 
 .input-group { margin-bottom: var(--sp-3); }
 
@@ -507,11 +560,12 @@ aside.open { transform: translateX(0); }
   margin-top: 10px;
 }
 
+/* ── Speed controls ── */
 .speed-row {
   display: flex;
   align-items: center;
   gap: var(--sp-3);
-  margin-bottom: var(--sp-4);
+  margin-bottom: var(--sp-2);
 }
 
 .speed-row label {
@@ -520,6 +574,123 @@ aside.open { transform: translateX(0); }
   color: var(--text-dim);
   flex-shrink: 0;
   letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.speed-presets {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--sp-1);
+  margin-bottom: var(--sp-4);
+}
+
+.speed-preset {
+  min-height: 30px;
+  font-size: .6rem;
+  font-family: var(--mono);
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  color: var(--text-dim);
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: border-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+}
+.speed-preset-dot {
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: .5;
+  transition: opacity var(--dur-fast);
+}
+.speed-preset:hover { border-color: var(--accent); color: var(--accent); }
+.speed-preset.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-dim);
+}
+.speed-preset.active .speed-preset-dot { opacity: 1; }
+
+/* ── Keyboard hints ── */
+.kbd-hints {
+  display: flex;
+  gap: var(--sp-4);
+  flex-wrap: wrap;
+  margin-top: var(--sp-3);
+  padding-top: var(--sp-3);
+  border-top: 1px solid var(--border-dim);
+}
+.kbd-hint {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--mono);
+  font-size: .58rem;
+  color: var(--text-dim);
+}
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 18px;
+  padding: 0 4px;
+  background: var(--surface-4);
+  border: 1px solid var(--border-hi);
+  border-bottom-width: 2px;
+  border-radius: 3px;
+  font-size: .58rem;
+  color: var(--text);
+  font-family: var(--mono);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* ── Keyboard shortcut toast ── */
+.kbd-toast {
+  position: fixed;
+  bottom: var(--sp-6);
+  left: 50%;
+  transform: translateX(-50%) translateY(12px);
+  background: var(--surface-4);
+  border: 1px solid var(--border-hi);
+  border-radius: var(--r-lg);
+  padding: var(--sp-2) var(--sp-4);
+  font-family: var(--mono);
+  font-size: .68rem;
+  color: var(--text);
+  z-index: 9998;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-mid) var(--ease), transform var(--dur-mid) var(--ease);
+  white-space: nowrap;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 16px rgba(0,0,0,.5);
+}
+.kbd-toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.kbd-toast kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 17px;
+  padding: 0 4px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-hi);
+  border-bottom-width: 2px;
+  border-radius: 3px;
+  font-size: .6rem;
+  color: var(--accent);
+  margin: 0 2px;
 }
 
 input[type="range"] {
@@ -630,18 +801,25 @@ input[type="range"]:focus::-webkit-slider-thumb { transform: scale(1.2); }
   border: 1px solid var(--border-dim);
   border-radius: var(--r-md);
   padding: var(--sp-3);
-  transition: border-color var(--dur-fast);
+  transition: border-color var(--dur-fast), background var(--dur-fast);
 }
 .metric:hover { border-color: var(--border-hi); }
+.metric.live {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+.metric.live .metric-val { color: var(--accent); }
 
 .metric-val {
   font-family: var(--mono);
   font-size: 1.25rem;
   font-weight: 700;
-  color: var(--accent);
+  color: var(--text-mid);
   line-height: 1;
   letter-spacing: -.01em;
+  transition: color var(--dur-fast);
 }
+.metric-val.populated { color: var(--accent); }
 
 .metric-label {
   font-size: .58rem;
@@ -682,7 +860,7 @@ main {
   gap: 0;
   border-bottom: 1px solid var(--border);
   background: var(--surface-2);
-  padding: 0 var(--sp-5);
+  padding: 0 var(--sp-4);
   overflow-x: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -691,9 +869,10 @@ main {
 .tab-bar::-webkit-scrollbar { display: none; }
 
 .tab {
-  padding: var(--sp-4) var(--sp-5);
+  padding: 0 var(--sp-4);
+  height: 44px;
   font-family: var(--mono);
-  font-size: .7rem;
+  font-size: .68rem;
   letter-spacing: .1em;
   text-transform: uppercase;
   color: var(--text-dim);
@@ -704,14 +883,46 @@ main {
   -webkit-user-select: none;
   user-select: none;
   white-space: nowrap;
-  min-height: var(--touch);
   display: flex;
   align-items: center;
+  gap: var(--sp-2);
   touch-action: manipulation;
 }
 
 .tab:hover { color: var(--text); }
-.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.tab.active {
+  color: var(--text-hi);
+  border-bottom-color: var(--accent);
+}
+
+/* Tab icon pip */
+.tab-pip {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  flex-shrink: 0;
+  transition: background var(--dur-fast), box-shadow var(--dur-fast);
+}
+.tab.active .tab-pip {
+  background: var(--accent);
+  box-shadow: 0 0 6px var(--accent);
+}
+/* History badge */
+.tab-badge {
+  display: none;
+  min-width: 18px;
+  height: 16px;
+  padding: 0 4px;
+  background: var(--accent-dim);
+  border: 1px solid rgba(0,229,255,.2);
+  border-radius: 10px;
+  font-size: .55rem;
+  color: var(--accent);
+  font-family: var(--mono);
+  align-items: center;
+  justify-content: center;
+}
+.tab-badge.visible { display: flex; }
 
 .viz-stage {
   flex: 1;
@@ -885,22 +1096,84 @@ main {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--sp-4);
+  gap: var(--sp-5);
   color: var(--text-dim);
   font-family: var(--mono);
   font-size: .82rem;
   text-align: center;
   padding: var(--sp-8);
+  position: relative;
 }
 
 .empty-icon {
-  width: 56px; height: 56px;
-  border: 2px solid var(--border-hi);
+  width: 64px; height: 64px;
+  border: 1px solid var(--border-hi);
   border-radius: 50%;
   display: grid;
   place-items: center;
-  font-size: 1.4rem;
-  opacity: .5;
+  position: relative;
+}
+.empty-icon svg {
+  width: 28px; height: 28px;
+  color: var(--accent);
+  opacity: .6;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .empty-icon::before {
+    content: '';
+    position: absolute;
+    inset: -8px;
+    border-radius: 50%;
+    border: 1px solid var(--accent);
+    opacity: 0;
+    animation: emptyPulse 2.4s ease-in-out infinite;
+  }
+  @keyframes emptyPulse {
+    0%   { opacity: 0; transform: scale(.85); }
+    40%  { opacity: .25; }
+    100% { opacity: 0; transform: scale(1.15); }
+  }
+}
+
+.empty-title {
+  font-size: .85rem;
+  color: var(--text-mid);
+  font-weight: 700;
+  letter-spacing: .04em;
+}
+.empty-sub {
+  font-size: .72rem;
+  color: var(--text-muted);
+  max-width: 280px;
+  line-height: 1.6;
+}
+
+/* Demo preview hint steps */
+.empty-steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  text-align: left;
+}
+.empty-step {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  font-size: .68rem;
+  color: var(--text-dim);
+}
+.empty-step-n {
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: var(--surface-4);
+  border: 1px solid var(--border-hi);
+  display: grid;
+  place-items: center;
+  font-size: .58rem;
+  color: var(--text-mid);
+  flex-shrink: 0;
+  font-family: var(--mono);
 }
 
 .code-stage {
@@ -1129,6 +1402,7 @@ footer {
 
 <a href="#main-content" class="skip-link">Skip to main content</a>
 <div class="sidebar-scrim" id="sidebar-scrim" aria-hidden="true"></div>
+<div class="kbd-toast" id="kbd-toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
 <div class="app">
 
@@ -1177,7 +1451,12 @@ footer {
 
     <!-- Group 1: Sorting -->
     <details class="algo-group" open>
-      <summary class="group-header">Sorting <span class="group-count">9</span></summary>
+      <summary class="group-header">
+        <span class="group-icon gi-sort">↕</span>
+        <span class="group-label">Sorting</span>
+        <span class="group-count">9</span>
+        <svg class="group-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 4 10 8 6 12"/></svg>
+      </summary>
       <div class="group-content">
         <div class="algo-grid" role="group" aria-label="Sorting algorithms">
           <button class="algo-btn active" data-algo="0" aria-pressed="true" aria-label="Bubble Sort O(n squared)">
@@ -1213,7 +1492,12 @@ footer {
 
     <!-- Group 2: Search -->
     <details class="algo-group">
-      <summary class="group-header">Search <span class="group-count">3</span></summary>
+      <summary class="group-header">
+        <span class="group-icon gi-search">⌕</span>
+        <span class="group-label">Search</span>
+        <span class="group-count">3</span>
+        <svg class="group-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 4 10 8 6 12"/></svg>
+      </summary>
       <div class="group-content">
         <div class="algo-grid" role="group" aria-label="Searching algorithms">
           <button class="algo-btn" data-algo="9" aria-pressed="false" aria-label="Linear Search O(n)">
@@ -1231,7 +1515,12 @@ footer {
 
     <!-- Group 3: Linear DS -->
     <details class="algo-group">
-      <summary class="group-header">Linear DS <span class="group-count">3</span></summary>
+      <summary class="group-header">
+        <span class="group-icon gi-ds">[ ]</span>
+        <span class="group-label">Linear DS</span>
+        <span class="group-count">3</span>
+        <svg class="group-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 4 10 8 6 12"/></svg>
+      </summary>
       <div class="group-content">
         <div class="algo-grid" role="group" aria-label="Linear data structures">
           <button class="algo-btn" data-algo="12" aria-pressed="false" aria-label="Linked List operations">
@@ -1249,7 +1538,12 @@ footer {
 
     <!-- Group 4: Advanced Non-Linear Structures -->
     <details class="algo-group">
-      <summary class="group-header">Trees & Graphs <span class="group-count">5</span></summary>
+      <summary class="group-header">
+        <span class="group-icon gi-graph">◈</span>
+        <span class="group-label">Trees &amp; Graphs</span>
+        <span class="group-count">5</span>
+        <svg class="group-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 4 10 8 6 12"/></svg>
+      </summary>
       <div class="group-content">
         <div class="algo-grid" role="group" aria-label="Tree and Graph structures">
           <button class="algo-btn" data-algo="15" aria-pressed="false" aria-label="BST Insert and Inorder">
@@ -1273,7 +1567,12 @@ footer {
 
     <!-- Group 5: Optimization & Modules -->
     <details class="algo-group">
-      <summary class="group-header">Heap / DP / Hash <span class="group-count">4</span></summary>
+      <summary class="group-header">
+        <span class="group-icon gi-dp">∑</span>
+        <span class="group-label">Heap / DP / Hash</span>
+        <span class="group-count">4</span>
+        <svg class="group-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 4 10 8 6 12"/></svg>
+      </summary>
       <div class="group-content">
         <div class="algo-grid" role="group" aria-label="Heap, dynamic programming, and hash table">
           <button class="algo-btn" data-algo="19" aria-pressed="false" aria-label="Min-Heap">
@@ -1317,18 +1616,38 @@ footer {
     <div class="section-label">Playback</div>
     <div class="speed-row">
       <label for="speed-slider">Delay</label>
-      <input type="range" id="speed-slider" min="100" max="2000" value="600" step="50"
+      <input type="range" id="speed-slider" min="50" max="2000" value="600" step="50"
         aria-label="Animation delay in milliseconds — higher is slower"
-        aria-valuemin="100" aria-valuemax="2000" aria-valuenow="600">
+        aria-valuemin="50" aria-valuemax="2000" aria-valuenow="600">
       <span class="speed-val" id="speed-val" aria-live="polite" aria-atomic="true">600ms</span>
     </div>
+    <div class="speed-presets" role="group" aria-label="Speed presets">
+      <button class="speed-preset" data-delay="1400" aria-label="Slow — 1400ms">
+        <span class="speed-preset-dot"></span>Slow
+      </button>
+      <button class="speed-preset active" data-delay="600" aria-label="Normal — 600ms">
+        <span class="speed-preset-dot"></span>Norm
+      </button>
+      <button class="speed-preset" data-delay="180" aria-label="Fast — 180ms">
+        <span class="speed-preset-dot"></span>Fast
+      </button>
+      <button class="speed-preset" data-delay="40" aria-label="Turbo — 40ms">
+        <span class="speed-preset-dot"></span>Turbo
+      </button>
+    </div>
     <button class="run-btn" id="run-btn" aria-label="Record and play algorithm">
-      ▶ Record & Play
+      ▶ Record &amp; Play
     </button>
     <div class="playback-row">
       <button class="pb-btn" id="pb-pause" disabled aria-label="Pause playback">⏸ Pause</button>
       <button class="pb-btn" id="pb-step"  disabled aria-label="Step forward one frame">⏭ Step</button>
       <button class="pb-btn" id="pb-reset" disabled aria-label="Reset to beginning">↺ Reset</button>
+    </div>
+    <div class="kbd-hints" aria-label="Keyboard shortcuts">
+      <div class="kbd-hint"><span class="kbd">Space</span>pause</div>
+      <div class="kbd-hint"><span class="kbd">→</span>step</div>
+      <div class="kbd-hint"><span class="kbd">R</span>reset</div>
+      <div class="kbd-hint"><span class="kbd">↵</span>run</div>
     </div>
   </div>
 
@@ -1362,19 +1681,38 @@ footer {
 
   <div class="tab-bar" role="tablist" aria-label="View panels">
     <div class="tab active" data-tab="viz" role="tab" tabindex="0"
-      aria-selected="true" aria-controls="tab-viz" id="tab-viz-trigger">Visualization</div>
+      aria-selected="true" aria-controls="tab-viz" id="tab-viz-trigger">
+      <span class="tab-pip" aria-hidden="true"></span>Visualization
+    </div>
     <div class="tab" data-tab="code" role="tab" tabindex="-1"
-      aria-selected="false" aria-controls="tab-code" id="tab-code-trigger">Source Trace</div>
+      aria-selected="false" aria-controls="tab-code" id="tab-code-trigger">
+      <span class="tab-pip" aria-hidden="true"></span>Source Trace
+    </div>
     <div class="tab" data-tab="history" role="tab" tabindex="-1"
-      aria-selected="false" aria-controls="tab-history" id="tab-history-trigger">History Log</div>
+      aria-selected="false" aria-controls="tab-history" id="tab-history-trigger">
+      <span class="tab-pip" aria-hidden="true"></span>History Log
+      <span class="tab-badge" id="history-badge" aria-label="run history count"></span>
+    </div>
   </div>
 
   <!-- Visualization tab -->
   <div class="viz-stage active" id="tab-viz" role="tabpanel" aria-labelledby="tab-viz-trigger">
 
     <div id="empty-state" class="empty-state">
-      <div class="empty-icon" aria-hidden="true">▶</div>
-      <div>Select an algorithm, enter data, and press Record & Play</div>
+      <div class="empty-icon" aria-hidden="true">
+        <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <polygon points="10,6 22,14 10,22" fill="rgba(0,229,255,.12)" stroke="currentColor"/>
+        </svg>
+      </div>
+      <div>
+        <div class="empty-title">Ready to visualize</div>
+        <div class="empty-sub" style="margin-top:6px">Pick an algorithm, enter your data, and hit Record &amp; Play to see it run step-by-step.</div>
+      </div>
+      <div class="empty-steps" aria-label="Quick start steps">
+        <div class="empty-step"><span class="empty-step-n">1</span>Choose algorithm from the left panel</div>
+        <div class="empty-step"><span class="empty-step-n">2</span>Enter comma-separated integers</div>
+        <div class="empty-step"><span class="empty-step-n">3</span>Press <span class="kbd" style="font-size:.6rem">↵</span>&nbsp;or click Record &amp; Play</div>
+      </div>
     </div>
 
     <div id="viz-content">
@@ -3152,6 +3490,136 @@ $clearHistory.addEventListener('click', () => {
 window.addEventListener('resize', () => {
   if (steps.length && currentStep > 0) renderStep(Math.max(0, currentStep - 1));
 });
+
+// ── Speed presets ──────────────────────────────────────────────────────────
+(function initSpeedPresets() {
+  const $presets = document.querySelectorAll('.speed-preset');
+
+  function syncPresets(val) {
+    $presets.forEach(b => b.classList.toggle('active', parseInt(b.dataset.delay, 10) === val));
+  }
+
+  $presets.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const delay = parseInt(btn.dataset.delay, 10);
+      $speedSlider.value = delay;
+      $speedVal.textContent = delay + 'ms';
+      syncPresets(delay);
+    });
+  });
+
+  // Sync when slider dragged
+  $speedSlider.addEventListener('input', () => {
+    syncPresets(parseInt($speedSlider.value, 10));
+  });
+})();
+
+// ── Live metric highlight ──────────────────────────────────────────────────
+function setMetricLive(id, value) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = value;
+  el.classList.add('populated');
+  el.closest?.('.metric')?.classList.add('live');
+  clearTimeout(el._liveTimer);
+  el._liveTimer = setTimeout(() => {
+    el.closest?.('.metric')?.classList.remove('live');
+  }, 600);
+}
+
+// ── History run-count badge ────────────────────────────────────────────────
+function updateHistoryBadge() {
+  const $badge = document.getElementById('history-badge');
+  if (!$badge) return;
+  const count = AlgoEngine.getHistory().length;
+  if (count > 0) {
+    $badge.textContent = count > 99 ? '99+' : String(count);
+    $badge.classList.add('visible');
+  } else {
+    $badge.classList.remove('visible');
+  }
+}
+
+// Patch the runBtn click to also update the badge and live metrics
+const _origRunClick = $runBtn.onclick;
+$runBtn.addEventListener('click', () => {
+  // Update badge after a tick so history is populated
+  setTimeout(() => {
+    updateHistoryBadge();
+  }, 100);
+});
+
+// Also patch renderStep to use live metric updates
+const _origRenderStep = renderStep;
+
+// ── Keyboard shortcuts ─────────────────────────────────────────────────────
+(function initKeyboardShortcuts() {
+  const $toast = document.getElementById('kbd-toast');
+  let _timer;
+
+  function showToast(html) {
+    if (!$toast) return;
+    $toast.innerHTML = html;
+    $toast.classList.add('show');
+    clearTimeout(_timer);
+    _timer = setTimeout(() => $toast.classList.remove('show'), 1400);
+  }
+
+  document.addEventListener('keydown', e => {
+    const tag = document.activeElement?.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+
+    switch (e.code) {
+      case 'Space':
+        e.preventDefault();
+        if (!$pauseBtn.disabled) {
+          $pauseBtn.click();
+          showToast(paused ? '<kbd>Space</kbd> Resume' : '<kbd>Space</kbd> Pause');
+        }
+        break;
+
+      case 'ArrowRight':
+        e.preventDefault();
+        if (!$stepBtn.disabled) {
+          $stepBtn.click();
+          showToast('<kbd>→</kbd> Step forward');
+        }
+        break;
+
+      case 'KeyR':
+        if (!$resetBtn.disabled) {
+          e.preventDefault();
+          $resetBtn.click();
+          showToast('<kbd>R</kbd> Reset');
+        }
+        break;
+
+      case 'Enter':
+        if (!$runBtn.disabled && document.activeElement !== $runBtn) {
+          e.preventDefault();
+          $runBtn.click();
+          showToast('<kbd>↵</kbd> Record &amp; Play');
+        }
+        break;
+
+      case 'Digit1': case 'Digit2': case 'Digit3': case 'Digit4':
+        // Speed preset shortcuts: 1=Slow 2=Normal 3=Fast 4=Turbo
+        const presetMap = { Digit1: 1400, Digit2: 600, Digit3: 180, Digit4: 40 };
+        const delay = presetMap[e.code];
+        if (delay) {
+          $speedSlider.value = delay;
+          $speedVal.textContent = delay + 'ms';
+          document.querySelectorAll('.speed-preset').forEach(b => {
+            b.classList.toggle('active', parseInt(b.dataset.delay, 10) === delay);
+          });
+          const labels = { 1400:'Slow', 600:'Normal', 180:'Fast', 40:'Turbo' };
+          showToast(`<kbd>${e.key}</kbd> Speed: ${labels[delay]}`);
+        }
+        break;
+    }
+  });
+})();
 
 (function initPreview() {
   const arr = [64, 34, 25, 12, 22, 11, 90];
