@@ -1417,7 +1417,6 @@ footer {
 
 <div class="app">
 
-<!-- ── Header ──────────────────────────────────────────────────────────────── -->
 <header role="banner">
   <div class="logo">
     <div class="logo-icon" aria-hidden="true">
@@ -1451,7 +1450,6 @@ footer {
   </div>
 </header>
 
-<!-- ── Sidebar ─────────────────────────────────────────────────────────────── -->
 <aside id="sidebar" aria-label="Algorithm controls">
 
   <div class="panel-section flush">
@@ -1460,7 +1458,6 @@ footer {
       <span class="algo-category cat-sort" id="current-cat" aria-live="polite">Sort</span>
     </div>
 
-    <!-- Group 1: Sorting -->
     <details class="algo-group" open>
       <summary class="group-header">
         <span class="group-icon gi-sort">↕</span>
@@ -1501,7 +1498,6 @@ footer {
       </div>
     </details>
 
-    <!-- Group 2: Search -->
     <details class="algo-group">
       <summary class="group-header">
         <span class="group-icon gi-search">⌕</span>
@@ -1524,7 +1520,6 @@ footer {
       </div>
     </details>
 
-    <!-- Group 3: Linear DS -->
     <details class="algo-group">
       <summary class="group-header">
         <span class="group-icon gi-ds">[ ]</span>
@@ -1547,7 +1542,6 @@ footer {
       </div>
     </details>
 
-    <!-- Group 4: Advanced Non-Linear Structures -->
     <details class="algo-group">
       <summary class="group-header">
         <span class="group-icon gi-graph">◈</span>
@@ -1576,7 +1570,6 @@ footer {
       </div>
     </details>
 
-    <!-- Group 5: Optimization & Modules -->
     <details class="algo-group">
       <summary class="group-header">
         <span class="group-icon gi-dp">∑</span>
@@ -1603,7 +1596,6 @@ footer {
     </details>
   </div>
 
-  <!-- Data input -->
   <div class="panel-section">
     <div class="section-label">Input Data</div>
     <div class="input-group">
@@ -1623,7 +1615,6 @@ footer {
     </div>
   </div>
 
-  <!-- Playback controls -->
   <div class="panel-section">
     <div class="section-label">Playback</div>
     <div class="speed-row">
@@ -1665,7 +1656,6 @@ footer {
     </div>
   </div>
 
-  <!-- Metrics -->
   <div class="panel-section">
     <div class="section-label">Current Run</div>
     <div class="metrics-grid">
@@ -1690,7 +1680,6 @@ footer {
 
 </aside>
 
-<!-- ── Main Stage ───────────────────────────────────────────────────────────── -->
 <main id="main-content" role="main">
 
   <div class="tab-bar" role="tablist" aria-label="View panels">
@@ -1709,7 +1698,6 @@ footer {
     </div>
   </div>
 
-  <!-- Visualization tab -->
   <div class="viz-stage active" id="tab-viz" role="tabpanel" aria-labelledby="tab-viz-trigger">
 
     <div id="empty-state" class="empty-state">
@@ -1750,7 +1738,6 @@ footer {
 
   </div>
 
-  <!-- Source Trace tab — Monaco Editor instance -->
   <div class="code-stage" id="tab-code" role="tabpanel" aria-labelledby="tab-code-trigger">
     <div class="code-panel-header">
       <span class="code-lang-badge" aria-hidden="true">C++</span>
@@ -1760,7 +1747,6 @@ footer {
     <div id="monaco-container" aria-label="C++ source code viewer" role="region"></div>
   </div>
 
-  <!-- History tab -->
   <div class="history-stage" id="tab-history" role="tabpanel" aria-labelledby="tab-history-trigger">
     <div class="history-header">
       <h2>SQLite Run History</h2>
@@ -1775,7 +1761,6 @@ footer {
 
 </main>
 
-<!-- ── Footer ──────────────────────────────────────────────────────────────── -->
 <footer>
   <span>Algorithm Flight Recorder — WebAssembly + C++ + SQLite</span>
   <div class="footer-right">
@@ -1786,12 +1771,23 @@ footer {
 
 </div>
 
-<!-- ── Scripts ─────────────────────────────────────────────────────────────── -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://cdnjs.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
 
-<script src="engine.sim.js"></script>
+<script>
+  var Module = {
+    locateFile: function(path) {
+      if (path.endsWith('.wasm')) {
+        // Forces the application to fetch the binary directly from your root domain URL
+        return '/' + path; 
+      }
+      return path;
+    }
+  };
+</script>
+
+<script src="engine.js"></script>
 <script>
 const SOURCE_MAP = {
   0: {
@@ -1886,7 +1882,7 @@ const SOURCE_MAP = {
       '      int tmp = arr[i]; int j = i;',
       '      while (j >= gap && arr[j-gap] > tmp)',
       '        arr[j] = arr[j-gap], j -= gap;  // shift',
-      '      arr[j] = tmp;                      // place',
+      '      arr[j] = tmp;                     // place',
       '    }',
       '  }',
       '}                                   // ← sorted',
@@ -1936,12 +1932,12 @@ const SOURCE_MAP = {
       'void BinarySearch::run(vector<int>& arr, int target) {',
       '  sort(arr.begin(), arr.end());     // pre-sort',
       '  int lo = 0, hi = n - 1;',
-      '  while (lo <= hi) {               // loop',
+      '  while (lo <= hi) {                // loop',
       '    int mid = lo + (hi-lo)/2;',
       '    if (arr[mid] == target)         // compare mid',
       '      return mid;                   // ← found',
       '    else if (arr[mid] < target) lo = mid+1;  // go right',
-      '    else                       hi = mid-1;  // go left',
+      '    else                        hi = mid-1;  // go left',
       '  }',
       '  return -1;                        // ← not found',
       '}',
@@ -2071,7 +2067,7 @@ const SOURCE_MAP = {
       'void FibDP::run(vector<int>& arr) {',
       '  int n = arr[0];',
       '  vector<int> dp(n+1, 0);',
-      '  dp[0] = 0; dp[1] = 1;           // base cases',
+      '  dp[0] = 0; dp[1] = 1;            // base cases',
       '  for (int i = 2; i <= n; i++)',
       '    dp[i] = dp[i-1] + dp[i-2];    // recurrence',
       '  // result: dp[n]',
@@ -2146,62 +2142,16 @@ function sourceToText(entry) {
   return entry.lines.join('\n');
 }
 
+const $toast = document.getElementById('kbd-toast');
+let _toastTimer;
+function showToast(html, type = 'info', duration = 1400) {
+  if (!$toast) return;
+  $toast.innerHTML = html;
+  $toast.className = `kbd-toast show ${type}`;
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => $toast.classList.remove('show'), duration);
+}
 
-
-require(['vs/editor/editor.main'], () => {
-  monaco.editor.defineTheme('flight-recorder', {
-    base: 'vs-dark',
-    inherit: true,
-    rules: [
-      { token: 'comment',  foreground: '4a5568', fontStyle: 'italic' },
-      { token: 'keyword',  foreground: '7dcfff' },
-      { token: 'number',   foreground: 'ff9e64' },
-      { token: 'string',   foreground: 'a8ff78' },
-      { token: 'operator', foreground: '89ddff' },
-      { token: 'type',     foreground: 'a855f7' },
-    ],
-    colors: {
-      'editor.background':                  '#0a0c10',
-      'editor.foreground':                  '#c8d4e8',
-      'editor.lineHighlightBackground':     '#0f1218',
-      'editorLineNumber.foreground':        '#3a4358',
-      'editorLineNumber.activeForeground':  '#00e5ff',
-      'editor.selectionBackground':         '#1e2535',
-      'editorCursor.foreground':            '#00e5ff',
-      'scrollbar.shadow':                   '#00000000',
-    }
-  });
-
-  monacoEditor = monaco.editor.create(
-    document.getElementById('monaco-container'),
-    {
-      value:                sourceToText(SOURCE_MAP[0]),
-      language:             'cpp',
-      theme:                'flight-recorder',
-      readOnly:             true,
-      minimap:              { enabled: false },
-      scrollBeyondLastLine: false,
-      lineNumbers:          'on',
-      glyphMargin:          true,
-      folding:              false,
-      renderLineHighlight:  'none',
-      fontSize:             13,
-      fontFamily:           "'Share Tech Mono', 'Courier New', monospace",
-      lineHeight:           22,
-      padding:              { top: 16, bottom: 16 },
-      scrollbar:            { verticalScrollbarSize: 6, horizontalScrollbarSize: 6 },
-      overviewRulerBorder:  false,
-    }
-  );
-
-  window.addEventListener('resize', () => monacoEditor.layout());
-
-  document.querySelectorAll('.tab').forEach(t => {
-    t.addEventListener('click', () => {
-      if (t.dataset.tab === 'code') setTimeout(() => monacoEditor.layout(), 50);
-    });
-  });
-});
 
 function injectSource(algoId) {
   const entry = SOURCE_MAP[algoId];
@@ -2214,6 +2164,7 @@ function injectSource(algoId) {
   monacoEditor.setValue(sourceToText(entry));
   monacoDecoIds = monacoEditor.deltaDecorations(monacoDecoIds, []);
 }
+
 function initMonaco() {
   window.MonacoEnvironment = { getWorker: () => null };
 
@@ -2269,11 +2220,17 @@ function initMonaco() {
 
     window.addEventListener('resize', () => monacoEditor.layout());
 
+    document.querySelectorAll('.tab').forEach(t => {
+      t.addEventListener('click', () => {
+        if (t.dataset.tab === 'code') setTimeout(() => monacoEditor.layout(), 50);
+      });
+    });
+
     monacoLoading = false;
+    injectSource(selectedAlgo);
   });
 }
 
-injectSource(0);
 
 const ALGO_NAMES = AlgoEngine.NAMES;
 const COMPLEXITY = [
@@ -2295,6 +2252,10 @@ let playing      = false;
 let paused       = false;
 let playTimer    = null;
 let maxVal       = 1;
+const actionBuffer       = [];
+const ACTION_BUFFER_SIZE = 5;
+let barChartH    = 300;
+const _layoutCache = new Map();
 
 const $arrayInput  = document.getElementById('array-input');
 const $targetInput = document.getElementById('target-input');
@@ -2306,7 +2267,7 @@ const $resetBtn    = document.getElementById('pb-reset');
 const $speedSlider = document.getElementById('speed-slider');
 const $speedVal    = document.getElementById('speed-val');
 const $barChart    = document.getElementById('bar-chart');
-let barChartH = 300;
+
 const _barChartObserver = new ResizeObserver(entries => {
   for (const e of entries) {
     const h = Math.floor(e.contentRect.height);
@@ -2542,19 +2503,22 @@ function startStreamingPlayback(gen) {
 }
 
 $runBtn.addEventListener('click', () => {
+  if (DIJKSTRA_IDS.has(selectedAlgo) && !guardDijkstraExecution()) return;
+
   if (playing) {
     stopPlayback();
-    resetToStart();
+    currentStep = 0;
+    if (steps.length) renderStep(0);
     return;
   }
-  if (DIJKSTRA_IDS.has(selectedAlgo) && !guardDijkstraExecution()) return;
 
   const arr = parseArray();
   const err = validateInput(arr, selectedAlgo);
-  if (err) { showToast('⚠️ ' + err, 'error', 3500); return; }
+  if (err) { showToast(`⚠️ ${err}`, 'error', 3500); return; } 
 
   stopPlayback();
-  actionBuffer.length = 0;
+  actionBuffer.length = 0;   
+  _layoutCache.clear();      
 
   steps       = [];
   currentStep = 0;
@@ -2564,29 +2528,6 @@ $runBtn.addEventListener('click', () => {
   const cachedSteps = AlgoEngine.run(selectedAlgo, arr, extra);
   const cmps  = cachedSteps.filter(s => s.phase === 'compare').length;
   const swaps = cachedSteps.filter(s => s.phase === 'swap').length;
-  document.querySelector('.metrics-grid').innerHTML = `
-    <div class="metric" role="status" aria-label="Total steps">
-      <div class="metric-val" id="m-steps">0</div>
-      <div class="metric-label">Steps</div>
-    </div>
-    <div class="metric" role="status" aria-label="Comparisons">
-      <div class="metric-val" id="m-cmps">0</div>
-      <div class="metric-label">Compares</div>
-    </div>
-    <div class="metric" role="status" aria-label="Swaps">
-      <div class="metric-val" id="m-swaps">0</div>
-      <div class="metric-label">Swaps</div>
-    </div>
-    <div class="metric" role="status" aria-label="Input size">
-      <div class="metric-val" id="m-size">0</div>
-      <div class="metric-label">Size</div>
-    </div>
-  `;
-  const $mSteps = document.getElementById('m-steps');
-  const $mCmps  = document.getElementById('m-cmps');
-  const $mSwaps = document.getElementById('m-swaps');
-  const $mSize  = document.getElementById('m-size');
-
   $mSteps.textContent = cachedSteps.length;
   $mCmps.textContent  = cmps;
   $mSwaps.textContent = swaps;
@@ -2596,26 +2537,22 @@ $runBtn.addEventListener('click', () => {
   $curAlgo.textContent = AlgoEngine.NAMES[selectedAlgo] ?? '—';
   $curStep.textContent  = '0';
 
-  document.querySelector('.algo-btn.running')?.classList.remove('running');
-  document.querySelector('.algo-btn.active')?.classList.add('running');
+  playing = false;
+  paused  = false;
 
   $runBtn.disabled = true;
   $runBtn.textContent = '⏸ Running…';
 
-  playing = false;
-  paused  = false;
+  document.querySelector('.algo-btn.active')?.classList.add('running');
+
+  if (window.innerWidth < 768) closeSidebar();
+
+  updateHistoryBadge();
 
   const gen = stepGenerator(cachedSteps);
   setControls(true);
   whenVizPanelReady(() => startStreamingPlayback(gen));
-  updateHistoryBadge();
-  _layoutCache.clear();
-
-  if (window.innerWidth < 768) closeSidebar();
 });
-
-
-
 
 const MONACO_DECO_CLASS = {
   compare: 'monaco-line-compare',
@@ -2666,7 +2603,6 @@ function highlightLine(step) {
   ]);
   monacoEditor.revealLineInCenter(ln, monaco.editor.ScrollType.Smooth);
 }
-const _layoutCache = new Map();
 
 const DS_IDS       = new Set([12, 13, 14]);
 const TREE_IDS     = new Set([15, 16]);
@@ -2791,6 +2727,11 @@ function renderStep(idx) {
   const pct = steps.length > 1 ? (idx / (steps.length - 1)) * 100 : 100;
   $progressFill.style.width = pct + '%';
   $curStep.textContent = idx + 1;
+  const progressBar = $progressFill.closest('[role="progressbar"]');
+  if (progressBar) {
+    progressBar.setAttribute('aria-valuenow', Math.round(pct));
+    progressBar.setAttribute('aria-label', `Step ${idx + 1} of ${steps.length} — ${Math.round(pct)}%`);
+  }
 
   if (STRUCT_IDS.has(selectedAlgo)) {
     const { W } = getStructCanvasSize();
@@ -2802,7 +2743,7 @@ function renderStep(idx) {
   if (DS_IDS.has(selectedAlgo))          renderDS(s);
   else if (TREE_IDS.has(selectedAlgo))   renderTree(s);
   else if (GRAPH_IDS.has(selectedAlgo))  renderGraph(s);
-    else if (DIJKSTRA_IDS.has(selectedAlgo)) {
+  else if (DIJKSTRA_IDS.has(selectedAlgo)) {
     if (!guardDijkstraRender()) {
       showToast('⚠️ Graph canvas unready. Run again after panel opens.', 'error', 3500);
       resetBarCanvas();
@@ -2814,19 +2755,18 @@ function renderStep(idx) {
 
   else                                   renderBars(s);
 
-  $actionLog.innerHTML = `
-      actionBuffer.push({ phase: s.phase, action: s.action });
+  actionBuffer.push({ phase: s.phase, action: s.action });
   if (actionBuffer.length > ACTION_BUFFER_SIZE) actionBuffer.shift();
+
   $actionLog.innerHTML = actionBuffer.map((entry, i) => {
-    const age = actionBuffer.length - 1 - i;
+    const age     = actionBuffer.length - 1 - i; // 0 = newest
     const opacity = age === 0 ? 1 : Math.max(0.25, 1 - age * 0.18);
-    return `<div style="opacity:${opacity};transition:opacity .2s;display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap">
+    return `<div style="opacity:${opacity};transition:opacity .2s;display:flex;align-items:flex-start;gap:var(--sp-2);flex-wrap:wrap">
       <span class="action-phase ${entry.phase}">${entry.phase.toUpperCase()}</span>
       <span class="action-text">${entry.action}</span>
     </div>`;
   }).join('');
 
-  `;
   highlightLine(s);
 }
 
@@ -3280,31 +3220,10 @@ function renderGraph(s) {
   const nodeSet = new Set();
   edgePairs.forEach(([u, v]) => { nodeSet.add(u); nodeSet.add(v); });
   const nodes = Array.from(nodeSet).sort((a,b)=>a-b);
-  const n = nodes.length;
 
    const edgeKey = [...edgePairs].sort((a, b) => a[0] - b[0] || a[1] - b[1])
     .map(e => e.join('-')).join(',');
   const nodePos = getOrComputeLayout(edgeKey, nodes, edgePairs, W, H, cx, cy);
-
-    // Attraction: connected edges
-    edgePairs.forEach(([u, v]) => {
-      if (!nodePos[u] || !nodePos[v]) return;
-      const dx = nodePos[v].x - nodePos[u].x;
-      const dy = nodePos[v].y - nodePos[u].y;
-      const dist = Math.max(Math.sqrt(dx * dx + dy * dy), 0.01);
-      const force = ATTRACT * (dist - IDEAL);
-      const fx = (dx / dist) * force, fy = (dy / dist) * force;
-      vx[u] += fx; vy[u] += fy;
-      vx[v] -= fx; vy[v] -= fy;
-    });
-    // Integrate + damp + clamp to canvas
-    const pad = 36;
-    nodes.forEach(id => {
-      vx[id] *= DAMP; vy[id] *= DAMP;
-      nodePos[id].x = Math.max(pad, Math.min(W - pad, nodePos[id].x + vx[id]));
-      nodePos[id].y = Math.max(pad, Math.min(H - pad, nodePos[id].y + vy[id]));
-    });
-  }
 
   const visitedSet   = new Set(data.visited  || []);
   const frontierSet  = new Set(data.frontier || []);
@@ -3388,58 +3307,60 @@ function renderDijkstra(s) {
   const nodeSet = new Set();
   data.edges.forEach(e => { nodeSet.add(e.u); nodeSet.add(e.v); });
   const nodes = Array.from(nodeSet).sort((a, b) => a - b);
-  const n = nodes.length;
-
   const edgePairs = data.edges.map(e => [e.u, e.v]);
 
-  // Force-directed layout: repulsion between nodes + spring attraction on edges
-  const pos = {};
-  // Seed positions on circle to avoid degenerate starts
-  const seedR = Math.min(W, H) * 0.35;
-  nodes.forEach((id, i) => {
-    const angle = (i / Math.max(n, 1)) * 2 * Math.PI - Math.PI / 2;
-    pos[id] = { x: cx + seedR * Math.cos(angle), y: cy + seedR * Math.sin(angle) };
-  });
+  const edgeKey  = data.edges.map(e => `${e.u}-${e.v}`).sort().join(',');
+  const cacheKey = `dijkstra|${edgeKey}|${W}|${H}`;
 
-  // Run iterations only once per render (not animated — deterministic final pos)
-  const ITER = 120, K = Math.sqrt((W * H) / Math.max(n, 1)), IDEAL = K * 1.1;
-  const REPEL = K * K * 2.5, ATTRACT = 0.12, DAMP = 0.88;
-  const vx = {}, vy = {};
-  nodes.forEach(id => { vx[id] = 0; vy[id] = 0; });
+  let pos;
+  if (_layoutCache.has(cacheKey)) {
+    pos = _layoutCache.get(cacheKey);
+  } else {
+    pos = {};
+    const n = nodes.length;
+    const seedR = Math.min(W, H) * 0.35;
+    nodes.forEach((id, i) => {
+      const angle = (i / Math.max(n, 1)) * 2 * Math.PI - Math.PI / 2;
+      pos[id] = { x: cx + seedR * Math.cos(angle), y: cy + seedR * Math.sin(angle) };
+    });
 
-  for (let iter = 0; iter < ITER; iter++) {
-    // Repulsion: every pair
-    for (let a = 0; a < nodes.length; a++) {
-      for (let b = a + 1; b < nodes.length; b++) {
-        const ai = nodes[a], bi = nodes[b];
-        const dx = pos[ai].x - pos[bi].x;
-        const dy = pos[ai].y - pos[bi].y;
-        const dist2 = Math.max(dx * dx + dy * dy, 0.01);
-        const dist = Math.sqrt(dist2);
-        const force = REPEL / dist2;
-        const fx = (dx / dist) * force, fy = (dy / dist) * force;
-        vx[ai] += fx; vy[ai] += fy;
-        vx[bi] -= fx; vy[bi] -= fy;
+    const ITER = 120, K = Math.sqrt((W * H) / Math.max(n, 1)), IDEAL = K * 1.1;
+    const REPEL = K * K * 2.5, ATTRACT = 0.12, DAMP = 0.88;
+    const vx = {}, vy = {};
+    nodes.forEach(id => { vx[id] = 0; vy[id] = 0; });
+
+    for (let iter = 0; iter < ITER; iter++) {
+      for (let a = 0; a < nodes.length; a++) {
+        for (let b = a + 1; b < nodes.length; b++) {
+          const ai = nodes[a], bi = nodes[b];
+          const dx = pos[ai].x - pos[bi].x;
+          const dy = pos[ai].y - pos[bi].y;
+          const dist2 = Math.max(dx * dx + dy * dy, 0.01);
+          const dist = Math.sqrt(dist2);
+          const force = REPEL / dist2;
+          const fx = (dx / dist) * force, fy = (dy / dist) * force;
+          vx[ai] += fx; vy[ai] += fy;
+          vx[bi] -= fx; vy[bi] -= fy;
+        }
       }
+      edgePairs.forEach(([u, v]) => {
+        if (!pos[u] || !pos[v]) return;
+        const dx = pos[v].x - pos[u].x;
+        const dy = pos[v].y - pos[u].y;
+        const dist = Math.max(Math.sqrt(dx * dx + dy * dy), 0.01);
+        const force = ATTRACT * (dist - IDEAL);
+        const fx = (dx / dist) * force, fy = (dy / dist) * force;
+        vx[u] += fx; vy[u] += fy;
+        vx[v] -= fx; vy[v] -= fy;
+      });
+      const pad = 36;
+      nodes.forEach(id => {
+        vx[id] *= DAMP; vy[id] *= DAMP;
+        pos[id].x = Math.max(pad, Math.min(W - pad, pos[id].x + vx[id]));
+        pos[id].y = Math.max(pad, Math.min(H - pad, pos[id].y + vy[id]));
+      });
     }
-    // Attraction: connected edges
-    edgePairs.forEach(([u, v]) => {
-      if (!pos[u] || !pos[v]) return;
-      const dx = pos[v].x - pos[u].x;
-      const dy = pos[v].y - pos[u].y;
-      const dist = Math.max(Math.sqrt(dx * dx + dy * dy), 0.01);
-      const force = ATTRACT * (dist - IDEAL);
-      const fx = (dx / dist) * force, fy = (dy / dist) * force;
-      vx[u] += fx; vy[u] += fy;
-      vx[v] -= fx; vy[v] -= fy;
-    });
-    // Integrate + damp + clamp to canvas
-    const pad = 36;
-    nodes.forEach(id => {
-      vx[id] *= DAMP; vy[id] *= DAMP;
-      pos[id].x = Math.max(pad, Math.min(W - pad, pos[id].x + vx[id]));
-      pos[id].y = Math.max(pad, Math.min(H - pad, pos[id].y + vy[id]));
-    });
+    _layoutCache.set(cacheKey, pos);
   }
 
   const visitedSet  = new Set(data.visited  || []);
@@ -3736,32 +3657,8 @@ function updateHistoryBadge() {
   }
 }
 
-// Patch the runBtn click to also update the badge and live metrics
-const _origRunClick = $runBtn.onclick;
-$runBtn.addEventListener('click', () => {
-  // Update badge after a tick so history is populated
-  setTimeout(() => {
-    updateHistoryBadge();
-  }, 100);
-});
-
-// Also patch renderStep to use live metric updates
-const _origRenderStep = renderStep;
-
 // ── Keyboard shortcuts ─────────────────────────────────────────────────────
 (function initKeyboardShortcuts() {
-  const $toast = document.getElementById('kbd-toast');
-  let _timer;
-
-    function showToast(html, type = 'info', duration = 1400) {
-    if (!$toast) return;
-    $toast.innerHTML = html;
-    $toast.className = `kbd-toast show ${type}`;
-    clearTimeout(_timer);
-    _timer = setTimeout(() => $toast.classList.remove('show'), duration);
-  }
-
-
   document.addEventListener('keydown', e => {
     const tag = document.activeElement?.tagName;
     if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
