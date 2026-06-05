@@ -1774,18 +1774,31 @@ footer {
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://cdnjs.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
-
 <script>
   var Module = {
     locateFile: function(path) {
       if (path.endsWith('.wasm')) {
-        // Enforces pulling directly from the root host domain
         return window.location.origin + '/' + path;
       }
       return path;
+    },
+    // This executes automatically the exact millisecond the WASM finishes compiling
+    onRuntimeInitialized: function() {
+      console.log("WebAssembly Engine fully initialized.");
+      
+      if (Module.AlgoEngine) {
+        // Expose it globally so your existing script lines can call AlgoEngine.run() seamlessly
+        window.AlgoEngine = Module.AlgoEngine;
+        
+        // Optional: Update a UI badge or console notice showing it's ready
+        showToast("WASM Engine connected successfully!", "success");
+      } else {
+        console.error("AlgoEngine was not found on the Module namespace. Check your C++ EMSCRIPTEN_BINDINGS block.");
+      }
     }
   };
 </script>
+
 <script src="engine.js"></script>
 <script>
 const SOURCE_MAP = {
