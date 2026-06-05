@@ -1779,14 +1779,13 @@ footer {
   var Module = {
     locateFile: function(path) {
       if (path.endsWith('.wasm')) {
-        // Forces the application to fetch the binary directly from your root domain URL
-        return '/' + path; 
+        // Enforces pulling directly from the root host domain
+        return window.location.origin + '/' + path;
       }
       return path;
     }
   };
 </script>
-
 <script src="engine.js"></script>
 <script>
 const SOURCE_MAP = {
