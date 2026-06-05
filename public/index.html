@@ -1774,32 +1774,36 @@ footer {
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://cdnjs.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+
 <script>
   var Module = {
     locateFile: function(path) {
       if (path.endsWith('.wasm')) {
-        return window.location.origin + '/' + path;
+        return window.location.origin + '/' + path; 
       }
       return path;
     },
-    // This executes automatically the exact millisecond the WASM finishes compiling
+    // This hook fires automatically the exact moment WebAssembly is fully loaded!
     onRuntimeInitialized: function() {
       console.log("WebAssembly Engine fully initialized.");
       
-      if (Module.AlgoEngine) {
-        // Expose it globally so your existing script lines can call AlgoEngine.run() seamlessly
-        window.AlgoEngine = Module.AlgoEngine;
-        
-        // Optional: Update a UI badge or console notice showing it's ready
-        showToast("WASM Engine connected successfully!", "success");
-      } else {
-        console.error("AlgoEngine was not found on the Module namespace. Check your C++ EMSCRIPTEN_BINDINGS block.");
+      // 1. Expose the C++ engine to the global window so your buttons work
+      window.AlgoEngine = Module.AlgoEngine;
+      
+      // 2. Update the UI pill from "JS SIM" to "WASM" so you know it worked!
+      const statusPill = document.getElementById('wasm-status');
+      if (statusPill) {
+        statusPill.innerHTML = '<div class="dot live" aria-hidden="true"></div><span>WASM NATIVE</span>';
       }
+      
+      // 3. NOW it is safe to run the preview animation
+      initPreview();
     }
   };
 </script>
 
 <script src="engine.js"></script>
+
 <script>
 const SOURCE_MAP = {
   0: {
@@ -2244,7 +2248,6 @@ function initMonaco() {
 }
 
 
-const ALGO_NAMES = AlgoEngine.NAMES;
 const COMPLEXITY = [
   'O(n²)','O(n²)','O(n²)','O(n log n)','O(n log n)',
   'O(n log n)','O(n log²n)','O(n+k)','O(nk)',
@@ -3727,7 +3730,8 @@ function updateHistoryBadge() {
   });
 })();
 
-(function initPreview() {
+function initPreview() {
+  if (!window.AlgoEngine) return;
   const arr = [64, 34, 25, 12, 22, 11, 90];
   maxVal = Math.max(...arr);
   $emptyState.style.display = 'none';
@@ -3750,7 +3754,7 @@ function updateHistoryBadge() {
     wrap.appendChild(bar); wrap.appendChild(label);
     $barChart.appendChild(wrap);
   });
-})();
+}
 </script>
 
 </body>
