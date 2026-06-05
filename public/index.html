@@ -6,6 +6,8 @@
 <meta name="description" content="Algorithm Flight Recorder — in-browser DSA visualiser powered by WebAssembly + C++ + SQLite">
 <title>Algorithm Flight Recorder</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
 <style>
 /* ── DESIGN TOKENS ── */
@@ -473,15 +475,18 @@ aside.open { transform: translateX(0); }
   background: var(--accent-strong);
   box-shadow: 0 0 0 1px var(--accent) inset, 0 0 12px var(--accent-glow);
 }
-.algo-btn.active::after {
+.algo-btn.active.running::before {
   content: '';
   position: absolute;
-  top: 3px; right: 3px;
-  width: 5px; height: 5px;
+  top: 5px; right: 5px;
+  width: 6px; height: 6px;
   border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 4px var(--accent);
+  background: var(--green);
+  box-shadow: 0 0 5px var(--green);
+  animation: pulse 1.4s ease-in-out infinite;
 }
+.algo-btn.running { border-color: var(--green); }
+
 
 .algo-tag {
   display: block;
@@ -692,6 +697,12 @@ aside.open { transform: translateX(0); }
   color: var(--accent);
   margin: 0 2px;
 }
+.kbd-toast.error {
+  background: rgba(192,57,43,.95);
+  border-color: var(--red);
+  color: var(--text-hi);
+}
+
 
 input[type="range"] {
   -webkit-appearance: none;
@@ -1599,8 +1610,9 @@ footer {
       <label for="array-input">Array (comma-separated integers)</label>
       <textarea id="array-input" rows="3" spellcheck="false" aria-describedby="array-hint">64, 34, 25, 12, 22, 11, 90</textarea>
       <span id="array-hint">
-        Graphs: enter edge pairs. Dijkstra: triplets (u w v). DP/Fib: single number.
+        Graphs: enter edge pairs. Dijkstra: triplets (u w v). DP/Fib: single number. Counting/Radix: supports negative integers.
       </span>
+
     </div>
     <button class="gen-btn" id="gen-btn" aria-label="Generate 16 random values">
       ⚡ Generate random (16 values)
@@ -1616,22 +1628,24 @@ footer {
     <div class="section-label">Playback</div>
     <div class="speed-row">
       <label for="speed-slider">Delay</label>
-      <input type="range" id="speed-slider" min="50" max="2000" value="600" step="50"
-        aria-label="Animation delay in milliseconds — higher is slower"
-        aria-valuemin="50" aria-valuemax="2000" aria-valuenow="600">
+      <input type="range" id="speed-slider" min="0" max="100" value="50" step="1"
+  aria-label="Animation delay in milliseconds — higher is slower"
+  aria-valuemin="0" aria-valuemax="100" aria-valuenow="50">
+
+
       <span class="speed-val" id="speed-val" aria-live="polite" aria-atomic="true">600ms</span>
     </div>
     <div class="speed-presets" role="group" aria-label="Speed presets">
-      <button class="speed-preset" data-delay="1400" aria-label="Slow — 1400ms">
+      <button class="speed-preset" data-delay="82" aria-label="Slow — 1400ms">
         <span class="speed-preset-dot"></span>Slow
       </button>
-      <button class="speed-preset active" data-delay="600" aria-label="Normal — 600ms">
+      <button class="speed-preset active" data-delay="50" aria-label="Normal — 600ms">
         <span class="speed-preset-dot"></span>Norm
       </button>
-      <button class="speed-preset" data-delay="180" aria-label="Fast — 180ms">
+      <button class="speed-preset" data-delay="22" aria-label="Fast — 180ms">
         <span class="speed-preset-dot"></span>Fast
       </button>
-      <button class="speed-preset" data-delay="40" aria-label="Turbo — 40ms">
+      <button class="speed-preset" data-delay="0" aria-label="Turbo — 40ms">
         <span class="speed-preset-dot"></span>Turbo
       </button>
     </div>
@@ -1773,7 +1787,10 @@ footer {
 </div>
 
 <!-- ── Scripts ─────────────────────────────────────────────────────────────── -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.47.0/min/vs/loader.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://cdnjs.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+
 <script src="engine.sim.js"></script>
 <script>
 const SOURCE_MAP = {
@@ -2121,17 +2138,15 @@ const $codeNote  = document.getElementById('code-note');
 
 let monacoEditor  = null;
 let monacoDecoIds = [];
+let monacoLoading = false;
+
 
 function sourceToText(entry) {
   if (!entry || !entry.lines) return '// No source available for this algorithm.';
   return entry.lines.join('\n');
 }
 
-window.MonacoEnvironment = { getWorker: () => null };
 
-require.config({
-  paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.47.0/min/vs' }
-});
 
 require(['vs/editor/editor.main'], () => {
   monaco.editor.defineTheme('flight-recorder', {
@@ -2199,6 +2214,64 @@ function injectSource(algoId) {
   monacoEditor.setValue(sourceToText(entry));
   monacoDecoIds = monacoEditor.deltaDecorations(monacoDecoIds, []);
 }
+function initMonaco() {
+  window.MonacoEnvironment = { getWorker: () => null };
+
+  require.config({
+    paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.47.0/min/vs' }
+  });
+
+  require(['vs/editor/editor.main'], () => {
+    monaco.editor.defineTheme('flight-recorder', {
+      base: 'vs-dark',
+      inherit: true,
+      rules: [
+        { token: 'comment',  foreground: '4a5568', fontStyle: 'italic' },
+        { token: 'keyword',  foreground: '7dcfff' },
+        { token: 'number',   foreground: 'ff9e64' },
+        { token: 'string',   foreground: 'a8ff78' },
+        { token: 'operator', foreground: '89ddff' },
+        { token: 'type',     foreground: 'a855f7' },
+      ],
+      colors: {
+        'editor.background':                  '#0a0c10',
+        'editor.foreground':                  '#c8d4e8',
+        'editor.lineHighlightBackground':     '#0f1218',
+        'editorLineNumber.foreground':        '#3a4358',
+        'editorLineNumber.activeForeground':  '#00e5ff',
+        'editor.selectionBackground':         '#1e2535',
+        'editorCursor.foreground':            '#00e5ff',
+        'scrollbar.shadow':                   '#00000000',
+      }
+    });
+
+    monacoEditor = monaco.editor.create(
+      document.getElementById('monaco-container'),
+      {
+        value:                sourceToText(SOURCE_MAP[0]),
+        language:             'cpp',
+        theme:                'flight-recorder',
+        readOnly:             true,
+        minimap:              { enabled: false },
+        scrollBeyondLastLine: false,
+        lineNumbers:          'on',
+        glyphMargin:          true,
+        folding:              false,
+        renderLineHighlight:  'none',
+        fontSize:             13,
+        fontFamily:           "'Share Tech Mono', 'Courier New', monospace",
+        lineHeight:           22,
+        padding:              { top: 16, bottom: 16 },
+        scrollbar:            { verticalScrollbarSize: 6, horizontalScrollbarSize: 6 },
+        overviewRulerBorder:  false,
+      }
+    );
+
+    window.addEventListener('resize', () => monacoEditor.layout());
+
+    monacoLoading = false;
+  });
+}
 
 injectSource(0);
 
@@ -2233,6 +2306,15 @@ const $resetBtn    = document.getElementById('pb-reset');
 const $speedSlider = document.getElementById('speed-slider');
 const $speedVal    = document.getElementById('speed-val');
 const $barChart    = document.getElementById('bar-chart');
+let barChartH = 300;
+const _barChartObserver = new ResizeObserver(entries => {
+  for (const e of entries) {
+    const h = Math.floor(e.contentRect.height);
+    if (h > 60) barChartH = h;
+  }
+});
+_barChartObserver.observe($barChart);
+
 const $actionLog   = document.getElementById('action-log');
 const $progressFill= document.getElementById('progress-fill');
 const $curStep     = document.getElementById('cur-step');
@@ -2342,10 +2424,23 @@ function activateTab(tab) {
 
   if (which === 'history') renderHistory();
   if (which === 'code') {
-    setTimeout(() => monacoEditor?.layout(), 60);
+    if (!monacoEditor && !monacoLoading) {
+      monacoLoading = true;
+      document.getElementById('monaco-container').innerHTML =
+        '<div style="display:grid;place-items:center;height:100%;' +
+        'font-family:var(--mono);font-size:.8rem;color:var(--text-dim)">' +
+        'Loading source viewer…</div>';
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.47.0/min/vs/loader.min.js';
+      s.onload = () => initMonaco();
+      document.head.appendChild(s);
+    } else {
+      setTimeout(() => monacoEditor?.layout(), 60);
+    }
     if (steps.length && currentStep > 0) highlightLine(steps[currentStep - 1]);
   }
 }
+
 
 $tabs.forEach((tab, i) => {
   tab.addEventListener('click', () => activateTab(tab));
@@ -2358,10 +2453,12 @@ $tabs.forEach((tab, i) => {
 });
 
 function getPlaybackDelayMs() {
-  const ms = parseInt($speedSlider.value, 10);
-  if (!Number.isFinite(ms)) return 600;
-  return Math.min(2000, Math.max(100, ms));
+  const v = parseInt($speedSlider.value, 10);
+  if (!Number.isFinite(v)) return 360;
+  const lo = Math.log(40), hi = Math.log(2000);
+  return Math.round(Math.exp(lo + (v / 100) * (hi - lo)));
 }
+
 
 $speedSlider.addEventListener('input', () => {
   $speedVal.textContent = getPlaybackDelayMs() + 'ms';
@@ -2406,9 +2503,7 @@ function validateInput(arr, algoId) {
     return 'Dijkstra needs edge triplets: u, weight, v (comma-separated, count must be a multiple of 3).';
   if (arr.length > limit)
     return `Max ${limit} elements for this algorithm (you entered ${arr.length}).`;
-  if (arr.some(v => v < 0) && (algoId === 7 || algoId === 8))
-    return 'Counting Sort and Radix Sort require non-negative integers.';
-  return null;
+ return null;
 }
 
 const STREAM_CHUNK = 1;
@@ -2447,13 +2542,19 @@ function startStreamingPlayback(gen) {
 }
 
 $runBtn.addEventListener('click', () => {
+  if (playing) {
+    stopPlayback();
+    resetToStart();
+    return;
+  }
   if (DIJKSTRA_IDS.has(selectedAlgo) && !guardDijkstraExecution()) return;
 
   const arr = parseArray();
   const err = validateInput(arr, selectedAlgo);
-  if (err) { alert(err); return; }
+  if (err) { showToast('⚠️ ' + err, 'error', 3500); return; }
 
   stopPlayback();
+  actionBuffer.length = 0;
 
   steps       = [];
   currentStep = 0;
@@ -2463,6 +2564,29 @@ $runBtn.addEventListener('click', () => {
   const cachedSteps = AlgoEngine.run(selectedAlgo, arr, extra);
   const cmps  = cachedSteps.filter(s => s.phase === 'compare').length;
   const swaps = cachedSteps.filter(s => s.phase === 'swap').length;
+  document.querySelector('.metrics-grid').innerHTML = `
+    <div class="metric" role="status" aria-label="Total steps">
+      <div class="metric-val" id="m-steps">0</div>
+      <div class="metric-label">Steps</div>
+    </div>
+    <div class="metric" role="status" aria-label="Comparisons">
+      <div class="metric-val" id="m-cmps">0</div>
+      <div class="metric-label">Compares</div>
+    </div>
+    <div class="metric" role="status" aria-label="Swaps">
+      <div class="metric-val" id="m-swaps">0</div>
+      <div class="metric-label">Swaps</div>
+    </div>
+    <div class="metric" role="status" aria-label="Input size">
+      <div class="metric-val" id="m-size">0</div>
+      <div class="metric-label">Size</div>
+    </div>
+  `;
+  const $mSteps = document.getElementById('m-steps');
+  const $mCmps  = document.getElementById('m-cmps');
+  const $mSwaps = document.getElementById('m-swaps');
+  const $mSize  = document.getElementById('m-size');
+
   $mSteps.textContent = cachedSteps.length;
   $mCmps.textContent  = cmps;
   $mSwaps.textContent = swaps;
@@ -2472,13 +2596,26 @@ $runBtn.addEventListener('click', () => {
   $curAlgo.textContent = AlgoEngine.NAMES[selectedAlgo] ?? '—';
   $curStep.textContent  = '0';
 
+  document.querySelector('.algo-btn.running')?.classList.remove('running');
+  document.querySelector('.algo-btn.active')?.classList.add('running');
+
+  $runBtn.disabled = true;
+  $runBtn.textContent = '⏸ Running…';
+
   playing = false;
   paused  = false;
 
   const gen = stepGenerator(cachedSteps);
   setControls(true);
   whenVizPanelReady(() => startStreamingPlayback(gen));
+  updateHistoryBadge();
+  _layoutCache.clear();
+
+  if (window.innerWidth < 768) closeSidebar();
 });
+
+
+
 
 const MONACO_DECO_CLASS = {
   compare: 'monaco-line-compare',
@@ -2529,6 +2666,7 @@ function highlightLine(step) {
   ]);
   monacoEditor.revealLineInCenter(ln, monaco.editor.ScrollType.Smooth);
 }
+const _layoutCache = new Map();
 
 const DS_IDS       = new Set([12, 13, 14]);
 const TREE_IDS     = new Set([15, 16]);
@@ -2612,11 +2750,12 @@ function isGraphLayoutReady() {
 
 function guardDijkstraExecution() {
   if (!isGraphLayoutReady()) {
-    alert('Visualization layout is not initialized. Reload the page and try again.');
+    showToast('⚠️ Layout not ready. Switch to Visualization tab first.', 'error', 3500);
     return false;
   }
   return true;
 }
+
 
 function guardDijkstraRender() {
   return isGraphLayoutReady();
@@ -2663,26 +2802,36 @@ function renderStep(idx) {
   if (DS_IDS.has(selectedAlgo))          renderDS(s);
   else if (TREE_IDS.has(selectedAlgo))   renderTree(s);
   else if (GRAPH_IDS.has(selectedAlgo))  renderGraph(s);
-  else if (DIJKSTRA_IDS.has(selectedAlgo)) {
+    else if (DIJKSTRA_IDS.has(selectedAlgo)) {
     if (!guardDijkstraRender()) {
-      alert('Dijkstra graph canvas is not ready. Run the algorithm again after the panel opens.');
+      showToast('⚠️ Graph canvas unready. Run again after panel opens.', 'error', 3500);
       resetBarCanvas();
       renderBars(s);
     } else {
       renderDijkstra(s);
     }
   }
+
   else                                   renderBars(s);
 
   $actionLog.innerHTML = `
-    <span class="action-phase ${s.phase}">${s.phase.toUpperCase()}</span>
-    <span class="action-text">${s.action}</span>
+      actionBuffer.push({ phase: s.phase, action: s.action });
+  if (actionBuffer.length > ACTION_BUFFER_SIZE) actionBuffer.shift();
+  $actionLog.innerHTML = actionBuffer.map((entry, i) => {
+    const age = actionBuffer.length - 1 - i;
+    const opacity = age === 0 ? 1 : Math.max(0.25, 1 - age * 0.18);
+    return `<div style="opacity:${opacity};transition:opacity .2s;display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap">
+      <span class="action-phase ${entry.phase}">${entry.phase.toUpperCase()}</span>
+      <span class="action-text">${entry.action}</span>
+    </div>`;
+  }).join('');
+
   `;
   highlightLine(s);
 }
 
 function renderBars(s) {
-  const chartH = $barChart.clientHeight || 300;
+  const chartH = barChartH;
   resetBarCanvas();
 
   s.array.forEach((val, i) => {
@@ -3052,6 +3201,58 @@ function renderTree(s) {
     svg.appendChild(txt);
   });
 }
+function getOrComputeLayout(edgeKey, nodeList, edgePairs, W, H, cx, cy) {
+  const cacheKey = `${edgeKey}|${W}|${H}`;
+  if (_layoutCache.has(cacheKey)) return _layoutCache.get(cacheKey);
+
+  const nodePos = {};
+  const n = nodeList.length;
+  const seedR = Math.min(W, H) * 0.35;
+  nodeList.forEach((id, i) => {
+    const angle = (i / Math.max(n, 1)) * 2 * Math.PI - Math.PI / 2;
+    nodePos[id] = { x: cx + seedR * Math.cos(angle), y: cy + seedR * Math.sin(angle) };
+  });
+
+  const ITER = 120, K = Math.sqrt((W * H) / Math.max(n, 1)), IDEAL = K * 1.1;
+  const REPEL = K * K * 2.5, ATTRACT = 0.12, DAMP = 0.88;
+  const vx = {}, vy = {};
+  nodeList.forEach(id => { vx[id] = 0; vy[id] = 0; });
+
+  for (let iter = 0; iter < ITER; iter++) {
+    for (let a = 0; a < nodeList.length; a++) {
+      for (let b = a + 1; b < nodeList.length; b++) {
+        const ai = nodeList[a], bi = nodeList[b];
+        const dx = nodePos[ai].x - nodePos[bi].x;
+        const dy = nodePos[ai].y - nodePos[bi].y;
+        const dist2 = Math.max(dx * dx + dy * dy, 0.01);
+        const dist = Math.sqrt(dist2);
+        const force = REPEL / dist2;
+        const fx = (dx / dist) * force, fy = (dy / dist) * force;
+        vx[ai] += fx; vy[ai] += fy;
+        vx[bi] -= fx; vy[bi] -= fy;
+      }
+    }
+    edgePairs.forEach(([u, v]) => {
+      if (!nodePos[u] || !nodePos[v]) return;
+      const dx = nodePos[v].x - nodePos[u].x;
+      const dy = nodePos[v].y - nodePos[u].y;
+      const dist = Math.max(Math.sqrt(dx * dx + dy * dy), 0.01);
+      const force = ATTRACT * (dist - IDEAL);
+      const fx = (dx / dist) * force, fy = (dy / dist) * force;
+      vx[u] += fx; vy[u] += fy;
+      vx[v] -= fx; vy[v] -= fy;
+    });
+    const pad = 36;
+    nodeList.forEach(id => {
+      vx[id] *= DAMP; vy[id] *= DAMP;
+      nodePos[id].x = Math.max(pad, Math.min(W - pad, nodePos[id].x + vx[id]));
+      nodePos[id].y = Math.max(pad, Math.min(H - pad, nodePos[id].y + vy[id]));
+    });
+  }
+
+  _layoutCache.set(cacheKey, nodePos);
+  return nodePos;
+}
 
 function graphEdgePairs(edges) {
   if (!Array.isArray(edges)) return [];
@@ -3081,36 +3282,10 @@ function renderGraph(s) {
   const nodes = Array.from(nodeSet).sort((a,b)=>a-b);
   const n = nodes.length;
 
-  // Force-directed layout: repulsion between nodes + spring attraction on edges
-  const nodePos = {};
-  // Seed positions on circle to avoid degenerate starts
-  const seedR = Math.min(W, H) * 0.35;
-  nodes.forEach((id, i) => {
-    const angle = (i / Math.max(n, 1)) * 2 * Math.PI - Math.PI / 2;
-    nodePos[id] = { x: cx + seedR * Math.cos(angle), y: cy + seedR * Math.sin(angle) };
-  });
+   const edgeKey = [...edgePairs].sort((a, b) => a[0] - b[0] || a[1] - b[1])
+    .map(e => e.join('-')).join(',');
+  const nodePos = getOrComputeLayout(edgeKey, nodes, edgePairs, W, H, cx, cy);
 
-  // Run iterations only once per render (not animated — deterministic final pos)
-  const ITER = 120, K = Math.sqrt((W * H) / Math.max(n, 1)), IDEAL = K * 1.1;
-  const REPEL = K * K * 2.5, ATTRACT = 0.12, DAMP = 0.88;
-  const vx = {}, vy = {};
-  nodes.forEach(id => { vx[id] = 0; vy[id] = 0; });
-
-  for (let iter = 0; iter < ITER; iter++) {
-    // Repulsion: every pair
-    for (let a = 0; a < nodes.length; a++) {
-      for (let b = a + 1; b < nodes.length; b++) {
-        const ai = nodes[a], bi = nodes[b];
-        const dx = nodePos[ai].x - nodePos[bi].x;
-        const dy = nodePos[ai].y - nodePos[bi].y;
-        const dist2 = Math.max(dx * dx + dy * dy, 0.01);
-        const dist = Math.sqrt(dist2);
-        const force = REPEL / dist2;
-        const fx = (dx / dist) * force, fy = (dy / dist) * force;
-        vx[ai] += fx; vy[ai] += fy;
-        vx[bi] -= fx; vy[bi] -= fy;
-      }
-    }
     // Attraction: connected edges
     edgePairs.forEach(([u, v]) => {
       if (!nodePos[u] || !nodePos[v]) return;
@@ -3409,6 +3584,15 @@ function tick() {
   currentStep++;
   playTimer = setTimeout(tick, getPlaybackDelayMs());
 }
+function resetToStart() {
+  clearTimeout(playTimer);
+  playing = false;
+  paused  = false;
+  currentStep = 0;
+  setControls(false);
+  if (steps.length) renderStep(0);
+  actionBuffer.length = 0;
+}
 
 function stopPlayback() {
   clearTimeout(playTimer);
@@ -3420,7 +3604,13 @@ function setControls(active) {
   $pauseBtn.disabled = !active;
   $stepBtn.disabled  = !active;
   $resetBtn.disabled = !active;
+  if (!active) {
+    $runBtn.disabled = false;
+    $runBtn.textContent = '▶ Record & Play';
+    document.querySelector('.algo-btn.running')?.classList.remove('running');
+  }
 }
+
 
 $pauseBtn.addEventListener('click', () => {
   if (!playing && !paused) return;
@@ -3456,15 +3646,19 @@ function renderHistory() {
   }
 
   let html = `<div class="history-scroll"><table class="history-table">
-    <thead><tr>
-      <th>#</th><th>Algorithm</th><th>Size</th>
-      <th>Steps</th><th>Compares</th><th>Swaps</th>
-      <th>Complexity</th><th>Timestamp</th>
+       <thead><tr>
+      <th>#</th><th>Algorithm</th><th>n (input)</th>
+      <th>Steps taken</th><th>Compares</th><th>Swaps</th>
+      <th>Efficiency</th><th>Complexity</th><th>Run at</th>
     </tr></thead><tbody>`;
 
-  rows.forEach(r => {
+
+    rows.forEach(r => {
     const algoIdx = AlgoEngine.NAMES.indexOf(r.Algorithm_Name || r.algorithm);
     const cx = algoIdx >= 0 ? COMPLEXITY[algoIdx] : '—';
+    const n = r.Dataset_Size || r.input_size || 1;
+    const totalSteps = r.Total_Steps_Computed || r.total_steps || 0;
+    const eff = n > 0 ? (totalSteps / n).toFixed(1) + '×n' : '—';
     html += `<tr>
       <td>${r.id}</td>
       <td class="algo-name">${r.Algorithm_Name || r.algorithm || '—'}</td>
@@ -3472,10 +3666,12 @@ function renderHistory() {
       <td class="steps-val">${r.Total_Steps_Computed ?? r.total_steps ?? '—'}</td>
       <td>${r.Comparisons_Count ?? r.comparisons ?? '—'}</td>
       <td>${r.Swaps_Count       ?? r.swaps       ?? '—'}</td>
+      <td class="steps-val">${eff}</td>
       <td><span class="complexity-badge">${cx}</span></td>
       <td class="ts">${r.Run_Timestamp || r.timestamp || '—'}</td>
     </tr>`;
   });
+
 
   html += '</tbody></table></div>';
   $c.innerHTML = html;
@@ -3557,13 +3753,14 @@ const _origRenderStep = renderStep;
   const $toast = document.getElementById('kbd-toast');
   let _timer;
 
-  function showToast(html) {
+    function showToast(html, type = 'info', duration = 1400) {
     if (!$toast) return;
     $toast.innerHTML = html;
-    $toast.classList.add('show');
+    $toast.className = `kbd-toast show ${type}`;
     clearTimeout(_timer);
-    _timer = setTimeout(() => $toast.classList.remove('show'), 1400);
+    _timer = setTimeout(() => $toast.classList.remove('show'), duration);
   }
+
 
   document.addEventListener('keydown', e => {
     const tag = document.activeElement?.tagName;
@@ -3630,7 +3827,8 @@ const _origRenderStep = renderStep;
   $totSteps.textContent = '—';
   $curStep.textContent  = '0';
   $barChart.innerHTML = '';
-  const chartH = 280;
+    const chartH = barChartH;
+
   arr.forEach(val => {
     const wrap = document.createElement('div');
     wrap.className = 'bar-wrap';
