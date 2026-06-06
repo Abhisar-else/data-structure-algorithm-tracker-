@@ -47,11 +47,20 @@
       }
       const footerEngine = document.getElementById('footer-engine');
       if (footerEngine) {
-        footerEngine.textContent = 'Engine: C++ WebAssembly';
+        footerEngine.innerHTML = '<span class="dot live"></span> Engine: C++ WebAssembly';
       }
     }).catch(err => {
       console.warn('[AlgoEngine] WASM failed to load, using JS simulation fallback.', err);
+      const footerEngine = document.getElementById('footer-engine');
+      if (footerEngine) {
+        footerEngine.innerHTML = '<span class="dot warn"></span> Engine: JS Simulation — Build with Emscripten to enable native C++ WASM';
+      }
     });
+  } else {
+    const footerEngine = document.getElementById('footer-engine');
+    if (footerEngine) {
+      footerEngine.innerHTML = '<span class="dot warn"></span> Engine: JS Simulation — Build with Emscripten to enable native C++ WASM';
+    }
   }
 
   window.AlgoEngine = {
