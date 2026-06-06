@@ -782,3 +782,5 @@ const AlgoEngine = (() => {
 
   return { run, getHistory, clearHistory, NAMES, CATEGORY };
 })();
+
+window.AlgoEngine = AlgoEngine;
