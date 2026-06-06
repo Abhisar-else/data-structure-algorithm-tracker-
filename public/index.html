@@ -3168,7 +3168,7 @@ $runBtn.addEventListener('click', () => {
 
   document.querySelector('.algo-btn.active')?.classList.add('running');
 
-  if (window.innerWidth < 768) closeSidebar();
+  if (window.innerWidth < 768 && $sidebar.classList.contains('open')) toggleSidebar();
 
   updateHistoryBadge();
 
