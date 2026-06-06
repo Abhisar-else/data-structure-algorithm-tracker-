@@ -302,7 +302,11 @@ header {
   border: none;
   color: var(--text);
   cursor: pointer;
-  padding: var(--sp-2);
+  width: var(--touch);
+  height: var(--touch);
+  padding: 0;
+  align-items: center;
+  justify-content: center;
 }
 
 .menu-toggle svg {
@@ -311,7 +315,7 @@ header {
 }
 
 @media (min-width: 768px) and (max-width: 1024px) {
-  .menu-toggle { display: block; }
+  .menu-toggle { display: flex; }
 }
 
 aside {
@@ -493,7 +497,8 @@ aside.open { transform: translateX(0); }
 }
 
 .algo-info-btn {
-  width: 32px;
+  width: var(--touch);
+  height: var(--touch);
   background: var(--surface-3);
   border: 1px solid var(--border);
   border-radius: var(--r-md);
