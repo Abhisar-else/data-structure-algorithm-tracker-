@@ -667,7 +667,8 @@ aside.open { transform: translateX(0); }
 }
 
 .speed-preset {
-  min-height: 30px;
+  min-height: 44px;
+  min-width: 44px;
   font-size: .6rem;
   font-family: var(--mono);
   letter-spacing: .05em;
@@ -684,6 +685,12 @@ aside.open { transform: translateX(0); }
   justify-content: center;
   gap: 3px;
 }
+
+.algo-btn, .speed-preset, .pb-btn, .play-btn {
+  min-height: 44px;
+  min-width: 44px;
+}
+
 .speed-preset-dot {
   width: 4px; height: 4px;
   border-radius: 50%;
@@ -2868,6 +2875,9 @@ function toggleSidebar() {
   const isOpen = $sidebar.classList.toggle('open');
   $sidebarScrim.classList.toggle('visible', isOpen);
   
+  // Bonus Polish: Scroll lock and background scrolling prevention
+  document.body.style.overflow = isOpen ? 'hidden' : '';
+
   // Sync accessibility attributes
   $menuToggle?.setAttribute('aria-expanded', isOpen);
   $sidebarToggle?.setAttribute('aria-expanded', isOpen);
@@ -2883,6 +2893,22 @@ function toggleSidebar() {
     }
   }
 }
+
+// ── Swipe-to-close gesture ──────────────────────────────────────────────────
+(function initSwipeToClose() {
+  let touchStartX = 0;
+  
+  $sidebar?.addEventListener('touchstart', e => {
+    touchStartX = e.changedTouches[0].screenX;
+  }, { passive: true });
+  
+  $sidebar?.addEventListener('touchend', e => {
+    const touchEndX = e.changedTouches[0].screenX;
+    if (touchStartX - touchEndX > 50) { // Swipe left
+      if ($sidebar.classList.contains('open')) toggleSidebar();
+    }
+  }, { passive: true });
+})();
 
 $menuToggle?.addEventListener('click', toggleSidebar);
 $sidebarToggle?.addEventListener('click', toggleSidebar);
@@ -2938,7 +2964,7 @@ document.querySelectorAll('.algo-btn').forEach(btn => {
       $codeNote.classList.remove('active');
     }
 
-    if (window.innerWidth < 768 && $sidebar.classList.contains('open')) toggleSidebar();
+    if (window.innerWidth < 1025 && $sidebar.classList.contains('open')) toggleSidebar();
   });
 });
 
@@ -3168,7 +3194,7 @@ $runBtn.addEventListener('click', () => {
 
   document.querySelector('.algo-btn.active')?.classList.add('running');
 
-  if (window.innerWidth < 768 && $sidebar.classList.contains('open')) toggleSidebar();
+  if (window.innerWidth < 1025 && $sidebar.classList.contains('open')) toggleSidebar();
 
   updateHistoryBadge();
 
