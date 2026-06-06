@@ -3,8 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Algorithm Flight Recorder — in-browser DSA visualiser powered by WebAssembly + C++ + SQLite">
+<meta name="description" content="Algorithm Flight Recorder — Professional DSA visualizer powered by C++ and WebAssembly with SQLite-backed telemetry.">
 <title>Algorithm Flight Recorder</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect x=%2210%22 y=%2210%22 width=%2280%22 height=%2280%22 rx=%2220%22 fill=%22%2300e5ff%22/><path d=%22M30 70 L50 30 L70 70%22 fill=%22none%22 stroke=%22%23070910%22 stroke-width=%228%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -1267,6 +1268,230 @@ main {
   line-height: 1;
 }
 
+/* ── Speed MS Labels ── */
+.speed-ms {
+  display: block;
+  font-size: 0.5rem;
+  opacity: 0.6;
+  margin-top: 1px;
+}
+
+/* ── Info Modal ── */
+.info-trigger {
+  background: var(--surface-4);
+  border: 1px solid var(--border-hi);
+  color: var(--accent);
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  font-size: .65rem;
+  cursor: pointer;
+  margin-left: var(--sp-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--dur-fast);
+  vertical-align: middle;
+}
+.info-trigger:hover { 
+  background: var(--accent); 
+  color: var(--surface-0);
+  transform: scale(1.1);
+  box-shadow: 0 0 8px var(--accent-glow);
+}
+
+.info-modal {
+  position: fixed; inset: 0;
+  background: rgba(7, 9, 16, 0.85);
+  backdrop-filter: blur(6px);
+  z-index: 2000;
+  display: grid; place-items: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity var(--dur-mid);
+  padding: var(--sp-5);
+}
+.info-modal.visible { opacity: 1; pointer-events: auto; }
+.info-modal-content {
+  background: var(--surface-2);
+  border: 1px solid var(--border-hi);
+  border-radius: var(--r-xl);
+  padding: var(--sp-6);
+  max-width: 480px;
+  width: 100%;
+  position: relative;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+  animation: modalSlideUp var(--dur-mid) var(--ease-out);
+}
+@keyframes modalSlideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.info-close {
+  position: absolute; top: var(--sp-4); right: var(--sp-4);
+  background: var(--surface-3); border: 1px solid var(--border); 
+  color: var(--text-dim); width: 28px; height: 28px;
+  border-radius: 50%; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all var(--dur-fast);
+}
+.info-close:hover { border-color: var(--red); color: var(--red); }
+
+.info-modal h3 { 
+  color: var(--text-hi); 
+  margin-bottom: var(--sp-2); 
+  font-family: var(--sans);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+.info-modal .algo-cat-badge {
+  display: inline-block;
+  font-size: 0.55rem;
+  font-family: var(--mono);
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-bottom: var(--sp-4);
+}
+.info-modal p { 
+  font-size: .88rem; 
+  color: var(--text); 
+  line-height: 1.6; 
+  margin-bottom: var(--sp-5); 
+}
+.info-stats { 
+  display: grid; 
+  grid-template-columns: 1fr 1fr; 
+  gap: var(--sp-3); 
+}
+.info-stat { 
+  background: var(--surface-3); 
+  padding: var(--sp-3); 
+  border-radius: var(--r-md); 
+  border: 1px solid var(--border-dim);
+}
+.info-stat span { 
+  font-size: .55rem; 
+  text-transform: uppercase; 
+  color: var(--text-dim); 
+  display: block;
+  margin-bottom: 4px;
+  letter-spacing: 0.1em;
+}
+.info-stat strong { 
+  font-size: .9rem; 
+  color: var(--gold); 
+  font-family: var(--mono); 
+}
+
+/* ── Comparison View ── */
+#compare-view {
+  position: fixed;
+  inset: var(--sp-6);
+  background: var(--surface-1);
+  border: 1px solid var(--border-hi);
+  border-radius: var(--r-xl);
+  z-index: 1500;
+  display: none;
+  flex-direction: column;
+  padding: var(--sp-6);
+  box-shadow: 0 30px 60px rgba(0,0,0,0.8);
+  backdrop-filter: blur(10px);
+}
+
+.compare-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--sp-6);
+}
+
+.compare-chart {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  gap: var(--sp-5);
+  padding: var(--sp-6) var(--sp-4);
+  border-bottom: 1px solid var(--border-dim);
+}
+
+.compare-bar-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-3);
+  min-width: 0;
+}
+
+.compare-bar {
+  width: 100%;
+  max-width: 60px;
+  background: linear-gradient(to top, var(--accent-dim), var(--accent));
+  border-radius: var(--r-sm) var(--r-sm) 0 0;
+  box-shadow: 0 0 20px var(--accent-glow);
+  position: relative;
+  transition: height 0.6s var(--ease-out);
+}
+
+.compare-val {
+  font-family: var(--mono);
+  font-size: 0.9rem;
+  color: var(--gold);
+  margin-bottom: 4px;
+}
+
+.compare-label {
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  text-align: center;
+  font-family: var(--mono);
+  word-break: break-word;
+  max-width: 80px;
+}
+
+.compare-close {
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: var(--sp-2) var(--sp-5);
+  border-radius: var(--r-md);
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+}
+.compare-close:hover { border-color: var(--accent); color: var(--accent); }
+
+.hist-check {
+  width: 16px; height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.history-header-actions {
+  display: flex;
+  gap: var(--sp-3);
+}
+
+.compare-trigger-btn {
+  background: var(--accent-dim);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  padding: var(--sp-2) var(--sp-4);
+  border-radius: var(--r-md);
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  cursor: pointer;
+  display: none;
+}
+.compare-trigger-btn:hover { background: var(--accent-strong); }
+
+/* ── Category SVG Icons ── */
+.cat-icon {
+  width: 14px; height: 14px;
+  stroke-width: 2;
+  stroke: currentColor;
+  fill: none;
+}
+
 .history-stage {
   flex: 1;
   display: none;
@@ -1460,7 +1685,9 @@ footer {
 
     <details class="algo-group" open>
       <summary class="group-header">
-        <span class="group-icon gi-sort">↕</span>
+        <span class="group-icon gi-sort">
+          <svg class="cat-icon" viewBox="0 0 24 24"><path d="M3 9l4-4 4 4M7 5v14M21 15l-4 4-4-4M17 19V5"/></svg>
+        </span>
         <span class="group-label">Sorting</span>
         <span class="group-count">9</span>
         <svg class="group-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 4 10 8 6 12"/></svg>
@@ -1500,7 +1727,9 @@ footer {
 
     <details class="algo-group">
       <summary class="group-header">
-        <span class="group-icon gi-search">⌕</span>
+        <span class="group-icon gi-search">
+          <svg class="cat-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        </span>
         <span class="group-label">Search</span>
         <span class="group-count">3</span>
         <svg class="group-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 4 10 8 6 12"/></svg>
@@ -1522,7 +1751,9 @@ footer {
 
     <details class="algo-group">
       <summary class="group-header">
-        <span class="group-icon gi-ds">[ ]</span>
+        <span class="group-icon gi-ds">
+          <svg class="cat-icon" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </span>
         <span class="group-label">Linear DS</span>
         <span class="group-count">3</span>
         <svg class="group-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 4 10 8 6 12"/></svg>
@@ -1544,7 +1775,9 @@ footer {
 
     <details class="algo-group">
       <summary class="group-header">
-        <span class="group-icon gi-graph">◈</span>
+        <span class="group-icon gi-graph">
+          <svg class="cat-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><circle cx="19" cy="5" r="3"/><circle cx="5" cy="5" r="3"/><circle cx="19" cy="19" r="3"/><circle cx="5" cy="19" r="3"/><path d="M17 7L14 10M7 7L10 10M17 17L14 14M7 17L10 14"/></svg>
+        </span>
         <span class="group-label">Trees &amp; Graphs</span>
         <span class="group-count">5</span>
         <svg class="group-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 4 10 8 6 12"/></svg>
@@ -1572,7 +1805,9 @@ footer {
 
     <details class="algo-group">
       <summary class="group-header">
-        <span class="group-icon gi-dp">∑</span>
+        <span class="group-icon gi-dp">
+          <svg class="cat-icon" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        </span>
         <span class="group-label">Heap / DP / Hash</span>
         <span class="group-count">4</span>
         <svg class="group-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 4 10 8 6 12"/></svg>
@@ -1624,20 +1859,24 @@ footer {
   aria-valuemin="0" aria-valuemax="100" aria-valuenow="50">
 
 
-      <span class="speed-val" id="speed-val" aria-live="polite" aria-atomic="true">600ms</span>
+      <span class="speed-val" id="speed-val" aria-live="polite" aria-atomic="true">283ms</span>
     </div>
     <div class="speed-presets" role="group" aria-label="Speed presets">
-      <button class="speed-preset" data-delay="82" aria-label="Slow — 1400ms">
-        <span class="speed-preset-dot"></span>Slow
+      <button class="speed-preset" data-delay="82" aria-label="Slow — 1000ms">
+        <span class="speed-preset-dot"></span>
+        <div>Slow<span class="speed-ms">1.0s</span></div>
       </button>
-      <button class="speed-preset active" data-delay="50" aria-label="Normal — 600ms">
-        <span class="speed-preset-dot"></span>Norm
+      <button class="speed-preset active" data-delay="50" aria-label="Normal — 280ms">
+        <span class="speed-preset-dot"></span>
+        <div>Norm<span class="speed-ms">280ms</span></div>
       </button>
-      <button class="speed-preset" data-delay="22" aria-label="Fast — 180ms">
-        <span class="speed-preset-dot"></span>Fast
+      <button class="speed-preset" data-delay="22" aria-label="Fast — 100ms">
+        <span class="speed-preset-dot"></span>
+        <div>Fast<span class="speed-ms">100ms</span></div>
       </button>
       <button class="speed-preset" data-delay="0" aria-label="Turbo — 40ms">
-        <span class="speed-preset-dot"></span>Turbo
+        <span class="speed-preset-dot"></span>
+        <div>Turbo<span class="speed-ms">40ms</span></div>
       </button>
     </div>
     <button class="run-btn" id="run-btn" aria-label="Record and play algorithm">
@@ -1722,8 +1961,9 @@ footer {
         <div class="step-info">
           Step <span id="cur-step">0</span> / <span id="tot-steps">0</span>
         </div>
-        <div class="step-info">
+        <div class="step-info" style="display:flex;align-items:center">
           <span id="cur-algo">—</span>
+          <button class="info-trigger" id="info-trigger" title="Algorithm Information" aria-label="Show algorithm details">ℹ</button>
         </div>
       </div>
       <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
@@ -1750,7 +1990,10 @@ footer {
   <div class="history-stage" id="tab-history" role="tabpanel" aria-labelledby="tab-history-trigger">
     <div class="history-header">
       <h2>SQLite Run History</h2>
-      <button class="clear-btn" id="clear-history" aria-label="Clear all history entries">Clear Log</button>
+      <div class="history-header-actions">
+        <button class="compare-trigger-btn" id="compare-btn">📊 Compare Selected</button>
+        <button class="clear-btn" id="clear-history" aria-label="Clear all history entries">Clear Log</button>
+      </div>
     </div>
     <div class="history-scroll">
       <div id="history-container">
@@ -1761,50 +2004,76 @@ footer {
 
 </main>
 
+<div id="compare-view" aria-modal="true" role="dialog">
+  <div class="compare-header">
+    <h3 style="color:var(--text-hi);font-weight:800">📊 Performance Benchmark</h3>
+    <button class="compare-close" id="close-compare">Close</button>
+  </div>
+  <div class="compare-chart" id="compare-chart"></div>
+  <p style="font-size:0.6rem;color:var(--text-dim);margin-top:16px;text-align:center">Comparing total operation steps (fewer is better)</p>
+</div>
+
+<div class="info-modal" id="info-modal" aria-modal="true" role="dialog">
+  <div class="info-modal-content">
+    <button class="info-close" id="info-close" aria-label="Close modal">&times;</button>
+    <div id="info-body">
+      <h3 id="info-title">Algorithm Name</h3>
+      <span class="algo-cat-badge" id="info-cat">CATEGORY</span>
+      <p id="info-desc">Algorithm description goes here.</p>
+      <div class="info-stats">
+        <div class="info-stat">
+          <span>Time Complexity</span>
+          <strong id="info-time">O(n²)</strong>
+        </div>
+        <div class="info-stat">
+          <span>Space Complexity</span>
+          <strong id="info-space">O(1)</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <footer>
-  <span>Algorithm Flight Recorder — WebAssembly + C++ + SQLite</span>
+  <div class="footer-left">
+    <strong>AlgoRecorder v3.0</strong> — High-Performance DSA Visualization
+  </div>
   <div class="footer-right">
-    <span id="footer-engine">Engine: JS Simulation</span>
-    <span>Build with Emscripten to enable native C++ WASM</span>
+    <span id="footer-engine"><span class="dot live"></span> Engine: C++ WebAssembly</span>
+    <span>SQLite Telemetry Active</span>
   </div>
 </footer>
 
 </div>
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://cdnjs.gstatic.com" crossorigin>
-<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
-
-<script>
-  var Module = {
-    locateFile: function(path) {
-      if (path.endsWith('.wasm')) {
-        return window.location.origin + '/' + path; 
-      }
-      return path;
-    },
-    // This hook fires automatically the exact moment WebAssembly is fully loaded!
-    onRuntimeInitialized: function() {
-      console.log("WebAssembly Engine fully initialized.");
-      
-      // 1. Expose the C++ engine to the global window so your buttons work
-      window.AlgoEngine = Module.AlgoEngine;
-      
-      // 2. Update the UI pill from "JS SIM" to "WASM" so you know it worked!
-      const statusPill = document.getElementById('wasm-status');
-      if (statusPill) {
-        statusPill.innerHTML = '<div class="dot live" aria-hidden="true"></div><span>WASM NATIVE</span>';
-      }
-      
-      // 3. NOW it is safe to run the preview animation
-      initPreview();
-    }
-  };
-</script>
-
+<script src="engine.sim.js"></script>
 <script src="engine.js"></script>
+<script src="engine.wasm-bridge.js"></script>
 
 <script>
+/**
+ * Global Engine Initializer
+ * This ensures the UI only starts once both the DOM and the Engine are ready.
+ */
+(function initializeApp() {
+  function tryStart() {
+    if (typeof AlgoEngine !== 'undefined' && typeof initPreview === 'function') {
+      console.log("[UI] Engine detected, initializing preview...");
+      // Small delay to allow CSS layouts/ResizeObserver to settle
+      setTimeout(initPreview, 150);
+    } else {
+      console.warn("[UI] Engine not ready yet, retrying in 100ms...");
+      setTimeout(tryStart, 100);
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', tryStart);
+  } else {
+    tryStart();
+  }
+})();
+
 const SOURCE_MAP = {
   0: {
     title: 'BubbleSort::sort()',
@@ -2145,6 +2414,59 @@ const SOURCE_MAP = {
   },
 };
 
+const ALGO_INFO = {
+  0: { title: 'Bubble Sort', cat: 'SORTING', time: 'O(n²)', space: 'O(1)', desc: 'Repeatedly steps through the list, compares adjacent elements and swaps them if they are in the wrong order.' },
+  1: { title: 'Selection Sort', cat: 'SORTING', time: 'O(n²)', space: 'O(1)', desc: 'Divides the input list into two parts: a sorted sublist and an unsorted sublist. It repeatedly selects the smallest element from the unsorted part.' },
+  2: { title: 'Insertion Sort', cat: 'SORTING', time: 'O(n²)', space: 'O(1)', desc: 'Builds the final sorted array one item at a time. It is much less efficient on large lists than more advanced algorithms.' },
+  3: { title: 'Merge Sort', cat: 'SORTING', time: 'O(n log n)', space: 'O(n)', desc: 'An efficient, stable, comparison-based, divide-and-conquer sorting algorithm.' },
+  4: { title: 'Quick Sort', cat: 'SORTING', time: 'O(n log n)', space: 'O(log n)', desc: 'Pick an element as pivot and partition the given array around the picked pivot.' },
+  5: { title: 'Heap Sort', cat: 'SORTING', time: 'O(n log n)', space: 'O(1)', desc: 'Comparison-based sorting technique based on Binary Heap data structure.' },
+  6: { title: 'Shell Sort', cat: 'SORTING', time: 'O(n log² n)', space: 'O(1)', desc: 'Generalized version of insertion sort that allows the exchange of items that are far apart.' },
+  7: { title: 'Counting Sort', cat: 'SORTING', time: 'O(n + k)', space: 'O(k)', desc: 'Non-comparison-based sorting algorithm that works by counting the number of objects having distinct key values.' },
+  8: { title: 'Radix Sort', cat: 'SORTING', time: 'O(nk)', space: 'O(n + k)', desc: 'Sorts data with integer keys by grouping keys by the individual digits which share the same significant position and value.' },
+  9: { title: 'Linear Search', cat: 'SEARCH', time: 'O(n)', space: 'O(1)', desc: 'Sequential search algorithm that starts at one end and goes through each element of a list until the desired element is found.' },
+  10: { title: 'Binary Search', cat: 'SEARCH', time: 'O(log n)', space: 'O(1)', desc: 'Finds the position of a target value within a sorted array by repeatedly dividing the search interval in half.' },
+  11: { title: 'Jump Search', cat: 'SEARCH', time: 'O(√n)', space: 'O(1)', desc: 'Search algorithm for sorted arrays that checks fewer elements than linear search by jumping ahead by fixed steps.' },
+  12: { title: 'Linked List', cat: 'LINEAR DS', time: 'O(n)', space: 'O(n)', desc: 'Linear collection of data elements whose order is not given by their physical placement in memory.' },
+  13: { title: 'Stack', cat: 'LINEAR DS', time: 'O(n)', space: 'O(n)', desc: 'Linear data structure which follows a particular order in which the operations are performed (LIFO).' },
+  14: { title: 'Queue', cat: 'LINEAR DS', time: 'O(n)', space: 'O(n)', desc: 'Linear data structure which follows a particular order in which the operations are performed (FIFO).' },
+  15: { title: 'BST Insert', cat: 'TREE', time: 'O(log n)', space: 'O(n)', desc: 'Inserts a new node into a Binary Search Tree while maintaining its properties.' },
+  16: { title: 'BST Search', cat: 'TREE', time: 'O(log n)', space: 'O(1)', desc: 'Searches for a specific value in a Binary Search Tree by comparing with node values.' },
+  17: { title: 'BFS', cat: 'GRAPH', time: 'O(V + E)', space: 'O(V)', desc: 'Traverses or searches tree or graph data structures by exploring all neighbor nodes at the present depth.' },
+  18: { title: 'DFS', cat: 'GRAPH', time: 'O(V + E)', space: 'O(V)', desc: 'Traverses or searches tree or graph data structures by exploring as far as possible along each branch before backtracking.' },
+  19: { title: 'Min-Heap', cat: 'HEAP', time: 'O(n log n)', space: 'O(n)', desc: 'A complete binary tree where each node is smaller than or equal to its children.' },
+  20: { title: 'Fibonacci DP', cat: 'DP', time: 'O(n)', space: 'O(n)', desc: 'Calculates Fibonacci numbers using Dynamic Programming to avoid redundant computations.' },
+  21: { title: 'LCS', cat: 'DP', time: 'O(mn)', space: 'O(mn)', desc: 'Finds the longest subsequence common to all sequences in a set of sequences.' },
+  22: { title: 'Hash Table', cat: 'HASH', time: 'O(1) avg', space: 'O(n)', desc: 'Data structure that implements an associative array abstract data type, a structure that can map keys to values.' },
+  23: { title: 'Dijkstra', cat: 'GRAPH', time: 'O(E log V)', space: 'O(V)', desc: 'Algorithm for finding the shortest paths between nodes in a graph.' },
+};
+
+const INPUT_CONFIG = {
+  sort:   { label: 'Array (comma-separated)', hint: 'Numbers to sort, e.g. 64, 34, 25, 12', placeholder: '64, 34, 25...' },
+  search: { label: 'Sorted Array', hint: 'Array will be pre-sorted for Binary/Jump search', placeholder: '10, 20, 30, 40...' },
+  ds:     { label: 'Input Data', hint: 'Values to populate the structure', placeholder: '1, 2, 3, 4, 5...' },
+  graph:  { label: 'Edge Pairs (u,v)', hint: 'Enter pairs, e.g. 1,2, 2,3, 3,1', placeholder: '1,2, 2,3, 3,4...' },
+  dijkstra: { label: 'Edge Triplets (u,w,v)', hint: 'Source, Weight, Destination triplets', placeholder: '1,4,2, 1,2,3...' },
+  dp:     { label: 'Target Number', hint: 'Single integer for calculation', placeholder: '10' }
+};
+
+function updateInputContext(algoId) {
+  const $label = document.querySelector('label[for="array-input"]');
+  const $hint  = document.getElementById('array-hint');
+  const $input = document.getElementById('array-input');
+  
+  let cfg = INPUT_CONFIG.sort;
+  if (SEARCH_ALGOS.has(algoId)) cfg = INPUT_CONFIG.search;
+  if (DS_IDS.has(algoId) || TREE_IDS.has(algoId)) cfg = INPUT_CONFIG.ds;
+  if (GRAPH_IDS.has(algoId)) cfg = INPUT_CONFIG.graph;
+  if (algoId === 23) cfg = INPUT_CONFIG.dijkstra;
+  if (algoId === 20 || algoId === 21) cfg = INPUT_CONFIG.dp;
+
+  if ($label) $label.textContent = cfg.label;
+  if ($hint)  $hint.textContent  = cfg.hint;
+  if ($input) $input.placeholder = cfg.placeholder;
+}
+
 const $codeTitle = document.getElementById('code-title');
 const $codeNote  = document.getElementById('code-note');
 
@@ -2260,6 +2582,13 @@ const COMPLEXITY = [
   'O(E log V)',
 ];
 
+const SEARCH_ALGOS  = new Set([9, 10, 11, 16, 23]);
+const DS_IDS        = new Set([12, 13, 14]);
+const TREE_IDS      = new Set([15, 16]);
+const GRAPH_IDS     = new Set([17, 18]);
+const DIJKSTRA_IDS  = new Set([23]);
+const STRUCT_IDS    = new Set([12, 13, 14, 15, 16, 17, 18, 23]);
+
 let selectedAlgo = 0;
 let steps        = [];
 let currentStep  = 0;
@@ -2332,7 +2661,6 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && $sidebar.classList.contains('open')) closeSidebar();
 });
 
-const SEARCH_ALGOS  = new Set([9, 10, 11, 16, 23]);
 const $currentCat   = document.getElementById('current-cat');
 const CAT_LABEL     = ['sort','sort','sort','sort','sort','sort','sort','sort','sort',
                        'search','search','search','ds','ds','ds','tree','tree',
@@ -2349,6 +2677,8 @@ document.querySelectorAll('.algo-btn').forEach(btn => {
     btn.classList.add('active');
     btn.setAttribute('aria-pressed', 'true');
     selectedAlgo = parseInt(btn.dataset.algo);
+
+    updateInputContext(selectedAlgo);
 
     $targetRow.classList.toggle('visible', SEARCH_ALGOS.has(selectedAlgo));
     if (SEARCH_ALGOS.has(selectedAlgo)) {
@@ -2380,6 +2710,34 @@ document.querySelectorAll('.algo-btn').forEach(btn => {
     if (window.innerWidth < 768) closeSidebar();
   });
 });
+
+// ── Info Modal Logic ──
+(function initInfoModal() {
+  const $modal = document.getElementById('info-modal');
+  const $trigger = document.getElementById('info-trigger');
+  const $close = document.getElementById('info-close');
+
+  if (!$modal || !$trigger || !$close) return;
+
+  $trigger.addEventListener('click', () => {
+    const info = ALGO_INFO[selectedAlgo];
+    if (!info) return;
+
+    document.getElementById('info-title').textContent = info.title;
+    document.getElementById('info-cat').textContent = info.cat;
+    document.getElementById('info-cat').className = 'algo-cat-badge ' + (CAT_CLASS[info.cat.toLowerCase()] || 'cat-sort');
+    document.getElementById('info-desc').textContent = info.desc;
+    document.getElementById('info-time').textContent = info.time;
+    document.getElementById('info-space').textContent = info.space;
+
+    $modal.classList.add('visible');
+  });
+
+  $close.addEventListener('click', () => $modal.classList.remove('visible'));
+  $modal.addEventListener('click', (e) => {
+    if (e.target === $modal) $modal.classList.remove('visible');
+  });
+})();
 
 const $tabs = document.querySelectorAll('.tab');
 
@@ -2543,10 +2901,12 @@ $runBtn.addEventListener('click', () => {
   const cachedSteps = AlgoEngine.run(selectedAlgo, arr, extra);
   const cmps  = cachedSteps.filter(s => s.phase === 'compare').length;
   const swaps = cachedSteps.filter(s => s.phase === 'swap').length;
-  $mSteps.textContent = cachedSteps.length;
-  $mCmps.textContent  = cmps;
-  $mSwaps.textContent = swaps;
-  $mSize.textContent  = arr.length;
+
+  setMetricLive('m-steps', cachedSteps.length);
+  setMetricLive('m-cmps',  cmps);
+  setMetricLive('m-swaps', swaps);
+  setMetricLive('m-size',  arr.length);
+  
   $totSteps.textContent = cachedSteps.length;
 
   $curAlgo.textContent = AlgoEngine.NAMES[selectedAlgo] ?? '—';
@@ -2618,12 +2978,6 @@ function highlightLine(step) {
   ]);
   monacoEditor.revealLineInCenter(ln, monaco.editor.ScrollType.Smooth);
 }
-
-const DS_IDS       = new Set([12, 13, 14]);
-const TREE_IDS     = new Set([15, 16]);
-const GRAPH_IDS    = new Set([17, 18]);
-const DIJKSTRA_IDS = new Set([23]);
-const STRUCT_IDS   = new Set([12, 13, 14, 15, 16, 17, 18, 23]);
 
 let _structReflowPending = null;
 
@@ -2741,7 +3095,22 @@ function renderStep(idx) {
 
   const pct = steps.length > 1 ? (idx / (steps.length - 1)) * 100 : 100;
   $progressFill.style.width = pct + '%';
-  $curStep.textContent = idx + 1;
+  
+  const phaseMap = {
+    compare: '(Comparison)',
+    swap:    '(Swap)',
+    insert:  '(Insert)',
+    delete:  '(Delete)',
+    pivot:   '(Pivot)',
+    merge:   '(Merge)',
+    visit:   '(Visit)',
+    dp:      '(DP State)',
+    found:   '(Found!)',
+    done:    '(Complete)'
+  };
+  const phaseLabel = phaseMap[s.phase] || '';
+  $curStep.innerHTML = `${idx + 1} <span style="font-size:0.6rem;opacity:0.7;margin-left:4px">${phaseLabel}</span>`;
+  
   const progressBar = $progressFill.closest('[role="progressbar"]');
   if (progressBar) {
     progressBar.setAttribute('aria-valuenow', Math.round(pct));
@@ -3503,33 +3872,6 @@ function renderDijkstra(s) {
   });
 }
 
-function startPlayback() {
-  playing = true;
-  paused  = false;
-  tick();
-}
-
-function tick() {
-  if (!playing || paused) return;
-  if (currentStep >= steps.length) {
-    playing = false;
-    setControls(false);
-    return;
-  }
-  renderStep(currentStep);
-  currentStep++;
-  playTimer = setTimeout(tick, getPlaybackDelayMs());
-}
-function resetToStart() {
-  clearTimeout(playTimer);
-  playing = false;
-  paused  = false;
-  currentStep = 0;
-  setControls(false);
-  if (steps.length) renderStep(0);
-  actionBuffer.length = 0;
-}
-
 function stopPlayback() {
   clearTimeout(playTimer);
   playing = false;
@@ -3575,15 +3917,19 @@ $resetBtn.addEventListener('click', () => {
 function renderHistory() {
   const rows = AlgoEngine.getHistory();
   const $c   = document.getElementById('history-container');
+  const $compareBtn = document.getElementById('compare-btn');
 
   if (!rows.length) {
     $c.innerHTML = '<div class="no-history">No runs recorded yet.</div>';
+    $compareBtn.style.display = 'none';
     return;
   }
 
+  $compareBtn.style.display = 'block';
+
   let html = `<div class="history-scroll"><table class="history-table">
        <thead><tr>
-      <th>#</th><th>Algorithm</th><th>n (input)</th>
+      <th style="width:30px"></th><th>#</th><th>Algorithm</th><th>n (input)</th>
       <th>Steps taken</th><th>Compares</th><th>Swaps</th>
       <th>Efficiency</th><th>Complexity</th><th>Run at</th>
     </tr></thead><tbody>`;
@@ -3596,6 +3942,7 @@ function renderHistory() {
     const totalSteps = r.Total_Steps_Computed || r.total_steps || 0;
     const eff = n > 0 ? (totalSteps / n).toFixed(1) + '×n' : '—';
     html += `<tr>
+      <td><input type="checkbox" class="hist-check" data-id="${r.id}"></td>
       <td>${r.id}</td>
       <td class="algo-name">${r.Algorithm_Name || r.algorithm || '—'}</td>
       <td>${r.Dataset_Size    ?? r.input_size   ?? '—'}</td>
@@ -3613,9 +3960,62 @@ function renderHistory() {
   $c.innerHTML = html;
 }
 
+document.getElementById('compare-btn').addEventListener('click', () => {
+  const selectedIds = Array.from(document.querySelectorAll('.hist-check:checked')).map(cb => parseInt(cb.dataset.id));
+  if (selectedIds.length < 2) {
+    showToast('⚠️ Select at least 2 runs to compare', 'error');
+    return;
+  }
+  
+  const history = AlgoEngine.getHistory();
+  const selectedRuns = history.filter(r => selectedIds.includes(r.id));
+  
+  const $view = document.getElementById('compare-view');
+  const $chart = document.getElementById('compare-chart');
+  $view.style.display = 'block';
+  $chart.innerHTML = '';
+  
+  const maxSteps = Math.max(...selectedRuns.map(r => r.Total_Steps_Computed || r.total_steps || 0));
+  
+  selectedRuns.forEach(r => {
+    const steps = r.Total_Steps_Computed || r.total_steps || 0;
+    const h = (steps / maxSteps) * 140;
+    const barWrap = document.createElement('div');
+    barWrap.style.cssText = 'flex:1;display:flex;flex-direction:column;align-items:center;gap:8px';
+    
+    const bar = document.createElement('div');
+    bar.style.cssText = `width:100%;height:${h}px;background:var(--accent);border-radius:4px 4px 0 0;box-shadow:0 0 10px var(--accent-glow)`;
+    
+    const label = document.createElement('div');
+    label.style.cssText = 'font-size:.55rem;color:var(--text-dim);text-align:center;word-break:break-word;max-width:60px';
+    label.textContent = (r.Algorithm_Name || r.algorithm || '—').split(' ')[0] + ` (n=${r.Dataset_Size || r.input_size || 0})`;
+    
+    const val = document.createElement('div');
+    val.style.cssText = 'font-size:.65rem;color:var(--gold);font-family:var(--mono)';
+    val.textContent = steps;
+    
+    barWrap.appendChild(val);
+    barWrap.appendChild(bar);
+    barWrap.appendChild(label);
+    $chart.appendChild(barWrap);
+  });
+});
+
+document.getElementById('close-compare').addEventListener('click', () => {
+  document.getElementById('compare-view').style.display = 'none';
+});
+
 $clearHistory.addEventListener('click', () => {
-  const h = AlgoEngine.getHistory();
-  h.splice(0, h.length);
+  // engine.sim.js stores logs in a closed-over array; call clearHistory() if exposed,
+  // otherwise splice the live reference returned by getHistory()
+  if (typeof AlgoEngine.clearHistory === 'function') {
+    AlgoEngine.clearHistory();
+  } else {
+    // getHistory returns the live performanceLogs array in the sim
+    const h = AlgoEngine.getHistory();
+    h.splice(0, h.length);
+  }
+  updateHistoryBadge();
   renderHistory();
 });
 
@@ -3635,7 +4035,7 @@ window.addEventListener('resize', () => {
     btn.addEventListener('click', () => {
       const delay = parseInt(btn.dataset.delay, 10);
       $speedSlider.value = delay;
-      $speedVal.textContent = delay + 'ms';
+      $speedVal.textContent = getPlaybackDelayMs() + 'ms';
       syncPresets(delay);
     });
   });
@@ -3683,8 +4083,9 @@ function updateHistoryBadge() {
       case 'Space':
         e.preventDefault();
         if (!$pauseBtn.disabled) {
+          const wasPaused = paused;
           $pauseBtn.click();
-          showToast(paused ? '<kbd>Space</kbd> Resume' : '<kbd>Space</kbd> Pause');
+          showToast(wasPaused ? '<kbd>Space</kbd> Resume' : '<kbd>Space</kbd> Pause');
         }
         break;
 
@@ -3712,25 +4113,29 @@ function updateHistoryBadge() {
         }
         break;
 
-      case 'Digit1': case 'Digit2': case 'Digit3': case 'Digit4':
+      case 'Digit1': case 'Digit2': case 'Digit3': case 'Digit4': {
         // Speed preset shortcuts: 1=Slow 2=Normal 3=Fast 4=Turbo
-        const presetMap = { Digit1: 1400, Digit2: 600, Digit3: 180, Digit4: 40 };
-        const delay = presetMap[e.code];
-        if (delay) {
-          $speedSlider.value = delay;
-          $speedVal.textContent = delay + 'ms';
+        // Map to slider positions (0–100) via inverse of getPlaybackDelayMs log formula
+        const presetSliderPos = { Digit1: 82, Digit2: 50, Digit3: 22, Digit4: 0 };
+        const sliderPos = presetSliderPos[e.code];
+        if (sliderPos !== undefined) {
+          $speedSlider.value = sliderPos;
+          $speedVal.textContent = getPlaybackDelayMs() + 'ms';
           document.querySelectorAll('.speed-preset').forEach(b => {
-            b.classList.toggle('active', parseInt(b.dataset.delay, 10) === delay);
+            b.classList.toggle('active', parseInt(b.dataset.delay, 10) === sliderPos);
           });
-          const labels = { 1400:'Slow', 600:'Normal', 180:'Fast', 40:'Turbo' };
-          showToast(`<kbd>${e.key}</kbd> Speed: ${labels[delay]}`);
+          const labels = { Digit1:'Slow', Digit2:'Normal', Digit3:'Fast', Digit4:'Turbo' };
+          showToast(`<kbd>${e.key}</kbd> Speed: ${labels[e.code]}`);
         }
         break;
+      }
     }
   });
 })();
 
 function initPreview() {
+  if (initPreview._called) return;
+  initPreview._called = true;
   if (!window.AlgoEngine) return;
   const arr = [64, 34, 25, 12, 22, 11, 90];
   maxVal = Math.max(...arr);
@@ -3739,6 +4144,8 @@ function initPreview() {
   $curAlgo.textContent = AlgoEngine.NAMES[0];
   $totSteps.textContent = '—';
   $curStep.textContent  = '0';
+  $mSize.textContent = arr.length;
+  $mSize.classList.add('populated');
   $barChart.innerHTML = '';
     const chartH = barChartH;
 

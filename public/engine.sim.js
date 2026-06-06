@@ -775,5 +775,10 @@ const AlgoEngine = (() => {
 
   function getHistory() { return performanceLogs.slice(0, HISTORY_LIMIT); }
 
-  return { run, getHistory, NAMES, CATEGORY };
+  function clearHistory() {
+    performanceLogs.length = 0;
+    logId = 1;
+  }
+
+  return { run, getHistory, clearHistory, NAMES, CATEGORY };
 })();
