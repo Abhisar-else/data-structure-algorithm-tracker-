@@ -1,9 +1,0 @@
-<component name="libraryTable">
-  <library name="sqlite3">
-    <CLASSES>
-      <root url="jar://$PROJECT_DIR$/src/emsdk/upstream/emscripten/cache/ports/sqlite3.zip!/" />
-    </CLASSES>
-    <JAVADOC />
-    <SOURCES />
-  </library>
-</component>
