@@ -84,6 +84,26 @@
   --cat-dp-fg:      var(--green);
 }
 
+.input-warning {
+  display: none;
+  font-size: .62rem;
+  color: var(--gold);
+  background: var(--gold-dim);
+  padding: 6px 10px;
+  border-radius: var(--r-md);
+  margin-bottom: var(--sp-2);
+  border: 1px solid rgba(255,209,102,.2);
+  font-family: var(--mono);
+  line-height: 1.4;
+}
+.input-warning.visible { display: block; animation: shake 0.4s var(--ease); }
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25%      { transform: translateX(-4px); }
+  75%      { transform: translateX(4px); }
+}
+
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 .skip-link {
@@ -276,6 +296,24 @@ header {
 
 @media (min-width: 768px) { .sidebar-toggle { display: none; } }
 
+.menu-toggle {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--text);
+  cursor: pointer;
+  padding: var(--sp-2);
+}
+
+.menu-toggle svg {
+  width: 24px;
+  height: 24px;
+}
+
+@media (max-width: 1024px) {
+  .menu-toggle { display: block; }
+}
+
 aside {
   grid-area: sidebar;
   background: var(--surface-2);
@@ -380,31 +418,34 @@ aside.open { transform: translateX(0); }
   display: flex;
   align-items: center;
   gap: var(--sp-3);
-  padding: var(--sp-3) var(--sp-5);
-  font-family: var(--mono);
-  font-size: .72rem;
-  letter-spacing: .05em;
+  padding: 16px var(--sp-5) var(--sp-2) var(--sp-5);
+  font-family: var(--sans);
+  font-size: .7rem;
+  font-weight: 700;
+  letter-spacing: .12em;
   text-transform: uppercase;
-  color: var(--text-mid);
+  color: var(--text-muted);
   cursor: pointer;
   user-select: none;
   -webkit-user-select: none;
   list-style: none;
   min-height: var(--touch);
-  border-left: 2px solid transparent;
-  transition: color var(--dur-fast), background var(--dur-fast), border-color var(--dur-fast);
+  transition: color var(--dur-fast), background var(--dur-fast);
+  border-top: 1px solid var(--border-dim);
+  margin-top: var(--sp-2);
 }
+.algo-group:first-of-type .group-header { border-top: none; margin-top: 0; }
 .group-header::-webkit-details-marker { display: none; }
-.group-header:hover {
-  color: var(--text);
-  background: rgba(255,255,255,.02);
-}
-.algo-group[open] > .group-header {
-  color: var(--text);
-  border-left-color: var(--accent);
-  background: rgba(0,229,255,.02);
-}
+.group-header:hover { color: var(--text-mid); }
+.algo-group[open] > .group-header { color: var(--accent); }
+
 .group-label { flex: 1; min-width: 0; }
+.group-count { 
+  font-size: .65rem; 
+  opacity: .5; 
+  font-family: var(--mono);
+  font-weight: 400;
+}
 
 .group-chevron {
   width: 16px; height: 16px;
@@ -433,8 +474,39 @@ aside.open { transform: translateX(0); }
 
 .algo-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: var(--sp-2);
+}
+
+.algo-item {
+  display: flex;
+  gap: 6px;
+  align-items: stretch;
+}
+
+.algo-item .algo-btn {
+  flex: 1;
+}
+
+.algo-info-btn {
+  width: 32px;
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  color: var(--text-dim);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  transition: all var(--dur-fast);
+  flex-shrink: 0;
+}
+
+.algo-info-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-dim);
 }
 
 .algo-btn {
@@ -1335,9 +1407,29 @@ main {
 }
 .info-close:hover { border-color: var(--red); color: var(--red); }
 
+.info-detail-grid {
+  display: grid;
+  gap: var(--sp-4);
+  margin-bottom: var(--sp-6);
+}
+.info-detail-item strong {
+  display: block;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 4px;
+  letter-spacing: 0.05em;
+}
+.info-detail-item p {
+  font-size: 0.78rem !important;
+  margin-bottom: 0 !important;
+  color: var(--text);
+  line-height: 1.5;
+}
+
 .info-modal h3 { 
   color: var(--text-hi); 
-  margin-bottom: var(--sp-2); 
+  margin-bottom: var(--sp-1); 
   font-family: var(--sans);
   font-weight: 800;
   letter-spacing: 0.02em;
@@ -1657,6 +1749,13 @@ footer {
     </div>
   </div>
   <div class="header-right">
+    <button class="menu-toggle" id="menu-toggle" aria-label="Open navigation menu" aria-expanded="false" aria-controls="sidebar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="3" y1="12" x2="21" y2="12"></line>
+        <line x1="3" y1="6" x2="21" y2="6"></line>
+        <line x1="3" y1="18" x2="21" y2="18"></line>
+      </svg>
+    </button>
     <div class="header-status" aria-label="System status">
       <div class="status-pill"><div class="dot live" aria-hidden="true"></div><span>ENGINE READY</span></div>
       <div class="status-pill" id="wasm-status"><div class="dot warn" aria-hidden="true"></div><span>JS SIM</span></div>
@@ -1694,33 +1793,60 @@ footer {
       </summary>
       <div class="group-content">
         <div class="algo-grid" role="group" aria-label="Sorting algorithms">
-          <button class="algo-btn active" data-algo="0" aria-pressed="true" aria-label="Bubble Sort O(n squared)">
-            Bubble<span class="algo-tag" aria-hidden="true">O(n²)</span>
-          </button>
-          <button class="algo-btn" data-algo="1" aria-pressed="false" aria-label="Selection Sort O(n squared)">
-            Selection<span class="algo-tag" aria-hidden="true">O(n²)</span>
-          </button>
-          <button class="algo-btn" data-algo="2" aria-pressed="false" aria-label="Insertion Sort O(n squared)">
-            Insertion<span class="algo-tag" aria-hidden="true">O(n²)</span>
-          </button>
-          <button class="algo-btn" data-algo="3" aria-pressed="false" aria-label="Merge Sort O(n log n)">
-            Merge<span class="algo-tag" aria-hidden="true">O(n log n)</span>
-          </button>
-          <button class="algo-btn" data-algo="4" aria-pressed="false" aria-label="Quick Sort O(n log n)">
-            Quick<span class="algo-tag" aria-hidden="true">O(n log n)</span>
-          </button>
-          <button class="algo-btn" data-algo="5" aria-pressed="false" aria-label="Heap Sort O(n log n)">
-            Heap<span class="algo-tag" aria-hidden="true">O(n log n)</span>
-          </button>
-          <button class="algo-btn" data-algo="6" aria-pressed="false" aria-label="Shell Sort O(n log squared n)">
-            Shell<span class="algo-tag" aria-hidden="true">O(n log²n)</span>
-          </button>
-          <button class="algo-btn" data-algo="7" aria-pressed="false" aria-label="Counting Sort O(n plus k)">
-            Counting<span class="algo-tag" aria-hidden="true">O(n+k)</span>
-          </button>
-          <button class="algo-btn" data-algo="8" aria-pressed="false" aria-label="Radix Sort O(nk)">
-            Radix<span class="algo-tag" aria-hidden="true">O(nk)</span>
-          </button>
+          <div class="algo-item">
+            <button class="algo-btn active" data-algo="0" aria-pressed="true" aria-label="Bubble Sort O(n squared)">
+              Bubble<span class="algo-tag" aria-hidden="true">O(n²)</span>
+            </button>
+            <button class="algo-info-btn" data-algo="0" title="Algorithm Info">ℹ</button>
+          </div>
+          <div class="algo-item">
+            <button class="algo-btn" data-algo="1" aria-pressed="false" aria-label="Selection Sort O(n squared)">
+              Selection<span class="algo-tag" aria-hidden="true">O(n²)</span>
+            </button>
+            <button class="algo-info-btn" data-algo="1" title="Algorithm Info">ℹ</button>
+          </div>
+          <div class="algo-item">
+            <button class="algo-btn" data-algo="2" aria-pressed="false" aria-label="Insertion Sort O(n squared)">
+              Insertion<span class="algo-tag" aria-hidden="true">O(n²)</span>
+            </button>
+            <button class="algo-info-btn" data-algo="2" title="Algorithm Info">ℹ</button>
+          </div>
+          <div class="algo-item">
+            <button class="algo-btn" data-algo="3" aria-pressed="false" aria-label="Merge Sort O(n log n)">
+              Merge<span class="algo-tag" aria-hidden="true">O(n log n)</span>
+            </button>
+            <button class="algo-info-btn" data-algo="3" title="Algorithm Info">ℹ</button>
+          </div>
+          <div class="algo-item">
+            <button class="algo-btn" data-algo="4" aria-pressed="false" aria-label="Quick Sort O(n log n)">
+              Quick<span class="algo-tag" aria-hidden="true">O(n log n)</span>
+            </button>
+            <button class="algo-info-btn" data-algo="4" title="Algorithm Info">ℹ</button>
+          </div>
+          <div class="algo-item">
+            <button class="algo-btn" data-algo="5" aria-pressed="false" aria-label="Heap Sort O(n log n)">
+              Heap<span class="algo-tag" aria-hidden="true">O(n log n)</span>
+            </button>
+            <button class="algo-info-btn" data-algo="5" title="Algorithm Info">ℹ</button>
+          </div>
+          <div class="algo-item">
+            <button class="algo-btn" data-algo="6" aria-pressed="false" aria-label="Shell Sort O(n log squared n)">
+              Shell<span class="algo-tag" aria-hidden="true">O(n log²n)</span>
+            </button>
+            <button class="algo-info-btn" data-algo="6" title="Algorithm Info">ℹ</button>
+          </div>
+          <div class="algo-item">
+            <button class="algo-btn" data-algo="7" aria-pressed="false" aria-label="Counting Sort O(n plus k)">
+              Counting<span class="algo-tag" aria-hidden="true">O(n+k)</span>
+            </button>
+            <button class="algo-info-btn" data-algo="7" title="Algorithm Info">ℹ</button>
+          </div>
+          <div class="algo-item">
+            <button class="algo-btn" data-algo="8" aria-pressed="false" aria-label="Radix Sort O(nk)">
+              Radix<span class="algo-tag" aria-hidden="true">O(nk)</span>
+            </button>
+            <button class="algo-info-btn" data-algo="8" title="Algorithm Info">ℹ</button>
+          </div>
         </div>
       </div>
     </details>
@@ -1736,15 +1862,24 @@ footer {
       </summary>
       <div class="group-content">
         <div class="algo-grid" role="group" aria-label="Searching algorithms">
-          <button class="algo-btn" data-algo="9" aria-pressed="false" aria-label="Linear Search O(n)">
-            Linear<span class="algo-tag" aria-hidden="true">O(n)</span>
-          </button>
-          <button class="algo-btn" data-algo="10" aria-pressed="false" aria-label="Binary Search O(log n)">
-            Binary<span class="algo-tag" aria-hidden="true">O(log n)</span>
-          </button>
-          <button class="algo-btn" data-algo="11" aria-pressed="false" aria-label="Jump Search O(square root n)">
-            Jump<span class="algo-tag" aria-hidden="true">O(√n)</span>
-          </button>
+          <div class="algo-item">
+            <button class="algo-btn" data-algo="9" aria-pressed="false" aria-label="Linear Search O(n)">
+              Linear<span class="algo-tag" aria-hidden="true">O(n)</span>
+            </button>
+            <button class="algo-info-btn" data-algo="9" title="Algorithm Info">ℹ</button>
+          </div>
+          <div class="algo-item">
+            <button class="algo-btn" data-algo="10" aria-pressed="false" aria-label="Binary Search O(log n)">
+              Binary<span class="algo-tag" aria-hidden="true">O(log n)</span>
+            </button>
+            <button class="algo-info-btn" data-algo="10" title="Algorithm Info">ℹ</button>
+          </div>
+          <div class="algo-item">
+            <button class="algo-btn" data-algo="11" aria-pressed="false" aria-label="Jump Search O(square root n)">
+              Jump<span class="algo-tag" aria-hidden="true">O(√n)</span>
+            </button>
+            <button class="algo-info-btn" data-algo="11" title="Algorithm Info">ℹ</button>
+          </div>
         </div>
       </div>
     </details>
@@ -1760,15 +1895,24 @@ footer {
       </summary>
       <div class="group-content">
         <div class="algo-grid" role="group" aria-label="Linear data structures">
-          <button class="algo-btn" data-algo="12" aria-pressed="false" aria-label="Linked List operations">
-            Linked List<span class="algo-tag" aria-hidden="true">O(n)</span>
-          </button>
-          <button class="algo-btn" data-algo="13" aria-pressed="false" aria-label="Stack push pop peek">
-            Stack<span class="algo-tag" aria-hidden="true">LIFO</span>
-          </button>
-          <button class="algo-btn" data-algo="14" aria-pressed="false" aria-label="Queue enqueue dequeue">
-            Queue<span class="algo-tag" aria-hidden="true">FIFO</span>
-          </button>
+          <div class="algo-item">
+            <button class="algo-btn" data-algo="12" aria-pressed="false" aria-label="Linked List operations">
+              Linked List<span class="algo-tag" aria-hidden="true">O(n)</span>
+            </button>
+            <button class="algo-info-btn" data-algo="12" title="Algorithm Info">ℹ</button>
+          </div>
+          <div class="algo-item">
+            <button class="algo-btn" data-algo="13" aria-pressed="false" aria-label="Stack push pop peek">
+              Stack<span class="algo-tag" aria-hidden="true">LIFO</span>
+            </button>
+            <button class="algo-info-btn" data-algo="13" title="Algorithm Info">ℹ</button>
+          </div>
+          <div class="algo-item">
+            <button class="algo-btn" data-algo="14" aria-pressed="false" aria-label="Queue enqueue dequeue">
+              Queue<span class="algo-tag" aria-hidden="true">FIFO</span>
+            </button>
+            <button class="algo-info-btn" data-algo="14" title="Algorithm Info">ℹ</button>
+          </div>
         </div>
       </div>
     </details>
@@ -1784,21 +1928,36 @@ footer {
       </summary>
       <div class="group-content">
         <div class="algo-grid" role="group" aria-label="Tree and Graph structures">
-          <button class="algo-btn" data-algo="15" aria-pressed="false" aria-label="BST Insert and Inorder">
-            BST Insert<span class="algo-tag" aria-hidden="true">O(log n)</span>
-          </button>
-          <button class="algo-btn" data-algo="16" aria-pressed="false" aria-label="BST Search">
-            BST Search<span class="algo-tag" aria-hidden="true">O(log n)</span>
-          </button>
-          <button class="algo-btn" data-algo="17" aria-pressed="false" aria-label="Breadth-First Search">
-            BFS<span class="algo-tag" aria-hidden="true">O(V+E)</span>
-          </button>
-          <button class="algo-btn" data-algo="18" aria-pressed="false" aria-label="Depth-First Search">
-            DFS<span class="algo-tag" aria-hidden="true">O(V+E)</span>
-          </button>
-          <button class="algo-btn" data-algo="23" aria-pressed="false" aria-label="Dijkstra Shortest Path">
-            Dijkstra<span class="algo-tag" aria-hidden="true">O(E log V)</span>
-          </button>
+          <div class="algo-item">
+            <button class="algo-btn" data-algo="15" aria-pressed="false" aria-label="BST Insert and Inorder">
+              BST Insert<span class="algo-tag" aria-hidden="true">O(log n)</span>
+            </button>
+            <button class="algo-info-btn" data-algo="15" title="Algorithm Info">ℹ</button>
+          </div>
+          <div class="algo-item">
+            <button class="algo-btn" data-algo="16" aria-pressed="false" aria-label="BST Search">
+              BST Search<span class="algo-tag" aria-hidden="true">O(log n)</span>
+            </button>
+            <button class="algo-info-btn" data-algo="16" title="Algorithm Info">ℹ</button>
+          </div>
+          <div class="algo-item">
+            <button class="algo-btn" data-algo="17" aria-pressed="false" aria-label="Breadth-First Search">
+              BFS<span class="algo-tag" aria-hidden="true">O(V+E)</span>
+            </button>
+            <button class="algo-info-btn" data-algo="17" title="Algorithm Info">ℹ</button>
+          </div>
+          <div class="algo-item">
+            <button class="algo-btn" data-algo="18" aria-pressed="false" aria-label="Depth-First Search">
+              DFS<span class="algo-tag" aria-hidden="true">O(V+E)</span>
+            </button>
+            <button class="algo-info-btn" data-algo="18" title="Algorithm Info">ℹ</button>
+          </div>
+          <div class="algo-item">
+            <button class="algo-btn" data-algo="23" aria-pressed="false" aria-label="Dijkstra Shortest Path">
+              Dijkstra<span class="algo-tag" aria-hidden="true">O(E log V)</span>
+            </button>
+            <button class="algo-info-btn" data-algo="23" title="Algorithm Info">ℹ</button>
+          </div>
         </div>
       </div>
     </details>
@@ -1814,18 +1973,30 @@ footer {
       </summary>
       <div class="group-content">
         <div class="algo-grid" role="group" aria-label="Heap, dynamic programming, and hash table">
-          <button class="algo-btn" data-algo="19" aria-pressed="false" aria-label="Min-Heap">
-            Min-Heap<span class="algo-tag" aria-hidden="true">O(n log n)</span>
-          </button>
-          <button class="algo-btn" data-algo="20" aria-pressed="false" aria-label="Fibonacci Dynamic Programming">
-            Fibonacci<span class="algo-tag" aria-hidden="true">O(n)</span>
-          </button>
-          <button class="algo-btn" data-algo="21" aria-pressed="false" aria-label="Longest Common Subsequence">
-            LCS<span class="algo-tag" aria-hidden="true">O(mn)</span>
-          </button>
-          <button class="algo-btn" data-algo="22" aria-pressed="false" aria-label="Hash Table">
-            Hash Table<span class="algo-tag" aria-hidden="true">O(1) avg</span>
-          </button>
+          <div class="algo-item">
+            <button class="algo-btn" data-algo="19" aria-pressed="false" aria-label="Min-Heap">
+              Min-Heap<span class="algo-tag" aria-hidden="true">O(n log n)</span>
+            </button>
+            <button class="algo-info-btn" data-algo="19" title="Algorithm Info">ℹ</button>
+          </div>
+          <div class="algo-item">
+            <button class="algo-btn" data-algo="20" aria-pressed="false" aria-label="Fibonacci Dynamic Programming">
+              Fibonacci<span class="algo-tag" aria-hidden="true">O(n)</span>
+            </button>
+            <button class="algo-info-btn" data-algo="20" title="Algorithm Info">ℹ</button>
+          </div>
+          <div class="algo-item">
+            <button class="algo-btn" data-algo="21" aria-pressed="false" aria-label="Longest Common Subsequence">
+              LCS<span class="algo-tag" aria-hidden="true">O(mn)</span>
+            </button>
+            <button class="algo-info-btn" data-algo="21" title="Algorithm Info">ℹ</button>
+          </div>
+          <div class="algo-item">
+            <button class="algo-btn" data-algo="22" aria-pressed="false" aria-label="Hash Table">
+              Hash Table<span class="algo-tag" aria-hidden="true">O(1) avg</span>
+            </button>
+            <button class="algo-info-btn" data-algo="22" title="Algorithm Info">ℹ</button>
+          </div>
         </div>
       </div>
     </details>
@@ -1835,6 +2006,7 @@ footer {
     <div class="section-label">Input Data</div>
     <div class="input-group">
       <label for="array-input">Array (comma-separated integers)</label>
+      <div id="input-warning" class="input-warning" role="alert">⚠️ Array is not sorted — Binary Search requires sorted input.</div>
       <textarea id="array-input" rows="3" spellcheck="false" aria-describedby="array-hint">64, 34, 25, 12, 22, 11, 90</textarea>
       <span id="array-hint">
         Graphs: enter edge pairs. Dijkstra: triplets (u w v). DP/Fib: single number. Counting/Radix: supports negative integers.
@@ -1862,21 +2034,21 @@ footer {
       <span class="speed-val" id="speed-val" aria-live="polite" aria-atomic="true">283ms</span>
     </div>
     <div class="speed-presets" role="group" aria-label="Speed presets">
-      <button class="speed-preset" data-delay="82" aria-label="Slow — 1000ms">
+      <button class="speed-preset" data-delay="86" aria-label="Slow — 1200ms">
         <span class="speed-preset-dot"></span>
-        <div>Slow<span class="speed-ms">1.0s</span></div>
+        <div>Slow<span class="speed-ms">1.2s</span></div>
       </button>
-      <button class="speed-preset active" data-delay="50" aria-label="Normal — 280ms">
+      <button class="speed-preset active" data-delay="70" aria-label="Normal — 600ms">
         <span class="speed-preset-dot"></span>
-        <div>Norm<span class="speed-ms">280ms</span></div>
+        <div>Norm<span class="speed-ms">600ms</span></div>
       </button>
-      <button class="speed-preset" data-delay="22" aria-label="Fast — 100ms">
+      <button class="speed-preset" data-delay="43" aria-label="Fast — 200ms">
         <span class="speed-preset-dot"></span>
-        <div>Fast<span class="speed-ms">100ms</span></div>
+        <div>Fast<span class="speed-ms">200ms</span></div>
       </button>
-      <button class="speed-preset" data-delay="0" aria-label="Turbo — 40ms">
+      <button class="speed-preset" data-delay="10" aria-label="Turbo — 50ms">
         <span class="speed-preset-dot"></span>
-        <div>Turbo<span class="speed-ms">40ms</span></div>
+        <div>Turbo<span class="speed-ms">50ms</span></div>
       </button>
     </div>
     <button class="run-btn" id="run-btn" aria-label="Record and play algorithm">
@@ -2020,6 +2192,22 @@ footer {
       <h3 id="info-title">Algorithm Name</h3>
       <span class="algo-cat-badge" id="info-cat">CATEGORY</span>
       <p id="info-desc">Algorithm description goes here.</p>
+      
+      <div class="info-detail-grid">
+        <div class="info-detail-item">
+          <strong>Key Insight</strong>
+          <p id="info-insight">The aha-moment for this algorithm.</p>
+        </div>
+        <div class="info-detail-item">
+          <strong>Use When</strong>
+          <p id="info-use">Scenarios where this algorithm shines.</p>
+        </div>
+        <div class="info-detail-item">
+          <strong>Avoid When</strong>
+          <p id="info-avoid">Scenarios where it is inefficient or incorrect.</p>
+        </div>
+      </div>
+
       <div class="info-stats">
         <div class="info-stat">
           <span>Time Complexity</span>
@@ -2039,7 +2227,7 @@ footer {
     <strong>AlgoRecorder v3.0</strong> — High-Performance DSA Visualization
   </div>
   <div class="footer-right">
-    <span id="footer-engine"><span class="dot live"></span> Engine: C++ WebAssembly</span>
+    <span id="footer-engine"><span class="dot warn"></span> Engine: JS Simulation — Build with Emscripten to enable native C++ WASM</span>
     <span>SQLite Telemetry Active</span>
   </div>
 </footer>
@@ -2415,40 +2603,65 @@ const SOURCE_MAP = {
 };
 
 const ALGO_INFO = {
-  0: { title: 'Bubble Sort', cat: 'SORTING', time: 'O(n²)', space: 'O(1)', desc: 'Repeatedly steps through the list, compares adjacent elements and swaps them if they are in the wrong order.' },
-  1: { title: 'Selection Sort', cat: 'SORTING', time: 'O(n²)', space: 'O(1)', desc: 'Divides the input list into two parts: a sorted sublist and an unsorted sublist. It repeatedly selects the smallest element from the unsorted part.' },
-  2: { title: 'Insertion Sort', cat: 'SORTING', time: 'O(n²)', space: 'O(1)', desc: 'Builds the final sorted array one item at a time. It is much less efficient on large lists than more advanced algorithms.' },
-  3: { title: 'Merge Sort', cat: 'SORTING', time: 'O(n log n)', space: 'O(n)', desc: 'An efficient, stable, comparison-based, divide-and-conquer sorting algorithm.' },
-  4: { title: 'Quick Sort', cat: 'SORTING', time: 'O(n log n)', space: 'O(log n)', desc: 'Pick an element as pivot and partition the given array around the picked pivot.' },
-  5: { title: 'Heap Sort', cat: 'SORTING', time: 'O(n log n)', space: 'O(1)', desc: 'Comparison-based sorting technique based on Binary Heap data structure.' },
-  6: { title: 'Shell Sort', cat: 'SORTING', time: 'O(n log² n)', space: 'O(1)', desc: 'Generalized version of insertion sort that allows the exchange of items that are far apart.' },
-  7: { title: 'Counting Sort', cat: 'SORTING', time: 'O(n + k)', space: 'O(k)', desc: 'Non-comparison-based sorting algorithm that works by counting the number of objects having distinct key values.' },
-  8: { title: 'Radix Sort', cat: 'SORTING', time: 'O(nk)', space: 'O(n + k)', desc: 'Sorts data with integer keys by grouping keys by the individual digits which share the same significant position and value.' },
-  9: { title: 'Linear Search', cat: 'SEARCH', time: 'O(n)', space: 'O(1)', desc: 'Sequential search algorithm that starts at one end and goes through each element of a list until the desired element is found.' },
-  10: { title: 'Binary Search', cat: 'SEARCH', time: 'O(log n)', space: 'O(1)', desc: 'Finds the position of a target value within a sorted array by repeatedly dividing the search interval in half.' },
-  11: { title: 'Jump Search', cat: 'SEARCH', time: 'O(√n)', space: 'O(1)', desc: 'Search algorithm for sorted arrays that checks fewer elements than linear search by jumping ahead by fixed steps.' },
-  12: { title: 'Linked List', cat: 'LINEAR DS', time: 'O(n)', space: 'O(n)', desc: 'Linear collection of data elements whose order is not given by their physical placement in memory.' },
-  13: { title: 'Stack', cat: 'LINEAR DS', time: 'O(n)', space: 'O(n)', desc: 'Linear data structure which follows a particular order in which the operations are performed (LIFO).' },
-  14: { title: 'Queue', cat: 'LINEAR DS', time: 'O(n)', space: 'O(n)', desc: 'Linear data structure which follows a particular order in which the operations are performed (FIFO).' },
-  15: { title: 'BST Insert', cat: 'TREE', time: 'O(log n)', space: 'O(n)', desc: 'Inserts a new node into a Binary Search Tree while maintaining its properties.' },
-  16: { title: 'BST Search', cat: 'TREE', time: 'O(log n)', space: 'O(1)', desc: 'Searches for a specific value in a Binary Search Tree by comparing with node values.' },
-  17: { title: 'BFS', cat: 'GRAPH', time: 'O(V + E)', space: 'O(V)', desc: 'Traverses or searches tree or graph data structures by exploring all neighbor nodes at the present depth.' },
-  18: { title: 'DFS', cat: 'GRAPH', time: 'O(V + E)', space: 'O(V)', desc: 'Traverses or searches tree or graph data structures by exploring as far as possible along each branch before backtracking.' },
-  19: { title: 'Min-Heap', cat: 'HEAP', time: 'O(n log n)', space: 'O(n)', desc: 'A complete binary tree where each node is smaller than or equal to its children.' },
-  20: { title: 'Fibonacci DP', cat: 'DP', time: 'O(n)', space: 'O(n)', desc: 'Calculates Fibonacci numbers using Dynamic Programming to avoid redundant computations.' },
-  21: { title: 'LCS', cat: 'DP', time: 'O(mn)', space: 'O(mn)', desc: 'Finds the longest subsequence common to all sequences in a set of sequences.' },
-  22: { title: 'Hash Table', cat: 'HASH', time: 'O(1) avg', space: 'O(n)', desc: 'Data structure that implements an associative array abstract data type, a structure that can map keys to values.' },
-  23: { title: 'Dijkstra', cat: 'GRAPH', time: 'O(E log V)', space: 'O(V)', desc: 'Algorithm for finding the shortest paths between nodes in a graph.' },
+  0: { title: 'Bubble Sort', cat: 'SORTING', time: 'O(n²)', space: 'O(1)', semantic: 'comparison (potential swap)', desc: 'Repeatedly steps through the list, compares adjacent elements and swaps them if they are in the wrong order.', insight: 'Largest elements "bubble" to the end in each pass.', use: 'Educational purposes, small datasets.', avoid: 'Large datasets, performance-critical apps.' },
+  1: { title: 'Selection Sort', cat: 'SORTING', time: 'O(n²)', space: 'O(1)', semantic: 'comparison (potential swap)', desc: 'Divides the input list into two parts: a sorted sublist and an unsorted sublist. It repeatedly selects the smallest element from the unsorted part.', insight: 'Always performs O(n²) comparisons but exactly O(n) swaps.', use: 'Memory-constrained systems where writes are expensive.', avoid: 'Large datasets.' },
+  2: { title: 'Insertion Sort', cat: 'SORTING', time: 'O(n²)', space: 'O(1)', semantic: 'comparison & shift', desc: 'Builds the final sorted array one item at a time. It is much less efficient on large lists than more advanced algorithms.', insight: 'Very efficient for small or nearly-sorted datasets.', use: 'Nearly sorted data, small arrays.', avoid: 'Randomly ordered large datasets.' },
+  3: { title: 'Merge Sort', cat: 'SORTING', time: 'O(n log n)', space: 'O(n)', semantic: 'comparison & merge', desc: 'An efficient, stable, comparison-based, divide-and-conquer sorting algorithm.', insight: 'Guaranteed O(n log n) time but requires extra O(n) space.', use: 'External sorting, stable sort requirements.', avoid: 'Highly memory-constrained environments.' },
+  4: { title: 'Quick Sort', cat: 'SORTING', time: 'O(n log n)', space: 'O(log n)', semantic: 'partitioning step', desc: 'Pick an element as pivot and partition the given array around the picked pivot.', insight: 'Extremely fast in practice; relies on good pivot selection.', use: 'General-purpose high-performance sorting.', avoid: 'When stability is needed or worst-case O(n²) is a risk.' },
+  5: { title: 'Heap Sort', cat: 'SORTING', time: 'O(n log n)', space: 'O(1)', semantic: 'heapify operation', desc: 'Comparison-based sorting technique based on Binary Heap data structure.', insight: 'Combines the best of Merge Sort (time) and Insertion Sort (space).', use: 'Embedded systems, security-critical systems (no O(n²) risk).', avoid: 'When stability is required.' },
+  6: { title: 'Shell Sort', cat: 'SORTING', time: 'O(n log² n)', space: 'O(1)', semantic: 'gap comparison', desc: 'Generalized version of insertion sort that allows the exchange of items that are far apart.', insight: 'Breaks the O(n²) barrier for simple sorts using diminishing increments.', use: 'Medium datasets where simplicity is preferred over Merge/Quick.', avoid: 'Very large datasets.' },
+  7: { title: 'Counting Sort', cat: 'SORTING', time: 'O(n + k)', space: 'O(k)', semantic: 'counting occurrence', desc: 'Non-comparison-based sorting algorithm that works by counting the number of objects having distinct key values.', insight: 'Linear time is possible because it doesn\'t use comparisons.', use: 'Small range of integer keys.', avoid: 'Large ranges or non-integer keys.' },
+  8: { title: 'Radix Sort', cat: 'SORTING', time: 'O(nk)', space: 'O(n + k)', semantic: 'digit pass', desc: 'Sorts data with integer keys by grouping keys by the individual digits which share the same significant position and value.', insight: 'Sorts digit-by-digit using a stable counting sort as a subroutine.', use: 'Large lists of numbers or fixed-length strings.', avoid: 'Floating point numbers.' },
+  9: { title: 'Linear Search', cat: 'SEARCH', time: 'O(n)', space: 'O(1)', semantic: 'check element', desc: 'Sequential search algorithm that starts at one end and goes through each element of a list until the desired element is found.', insight: 'Simple but inefficient; works on unsorted data.', use: 'Small, unsorted datasets.', avoid: 'Large datasets.' },
+  10: { title: 'Binary Search', cat: 'SEARCH', time: 'O(log n)', space: 'O(1)', semantic: 'divide & compare', desc: 'Finds the position of a target value within a sorted array by repeatedly dividing the search interval in half.', insight: 'Halves the search space every step; requires sorted input.', use: 'Large, sorted datasets.', avoid: 'Unsorted datasets (requires O(n log n) pre-sort).' },
+  11: { title: 'Jump Search', cat: 'SEARCH', time: 'O(√n)', space: 'O(1)', semantic: 'block jump', desc: 'Search algorithm for sorted arrays that checks fewer elements than linear search by jumping ahead by fixed steps.', insight: 'Better than linear search, worse than binary search.', use: 'Sorted arrays where jumping back is costly.', avoid: 'When binary search is possible.' },
+  12: { title: 'Linked List', cat: 'LINEAR DS', time: 'O(n)', space: 'O(n)', semantic: 'node traversal', desc: 'Linear collection of data elements whose order is not given by their physical placement in memory.', insight: 'O(1) insertions/deletions at known positions; no random access.', use: 'Dynamic size requirements, frequent inserts/deletes.', avoid: 'When frequent random access is needed.' },
+  13: { title: 'Stack', cat: 'LINEAR DS', time: 'O(n)', space: 'O(n)', semantic: 'push/pop operation', desc: 'Linear data structure which follows a particular order in which the operations are performed (LIFO).', insight: 'Last-In, First-Out behavior; essential for recursion and backtracking.', use: 'Undo mechanisms, expression parsing, DFS.', avoid: 'When FIFO behavior is needed.' },
+  14: { title: 'Queue', cat: 'LINEAR DS', time: 'O(n)', space: 'O(n)', semantic: 'enqueue/dequeue', desc: 'Linear data structure which follows a particular order in which the operations are performed (FIFO).', insight: 'First-In, First-Out behavior; models real-world waiting lines.', use: 'Task scheduling, BFS, buffering.', avoid: 'When LIFO behavior is needed.' },
+  15: { title: 'BST Insert', cat: 'TREE', time: 'O(log n)', space: 'O(n)', semantic: 'node comparison', desc: 'Inserts a new node into a Binary Search Tree while maintaining its properties.', insight: 'Left is smaller, right is larger; maintains sorted structure dynamically.', use: 'Dynamic sets, hierarchical data.', avoid: 'When the tree becomes unbalanced (use AVL/Red-Black instead).' },
+  16: { title: 'BST Search', cat: 'TREE', time: 'O(log n)', space: 'O(1)', semantic: 'node comparison', desc: 'Searches for a specific value in a Binary Search Tree by comparing with node values.', insight: 'Recursive descent; path length is O(log n) if balanced.', use: 'Fast lookups in dynamic data.', avoid: 'Unbalanced trees (worst case O(n)).' },
+  17: { title: 'BFS', cat: 'GRAPH', time: 'O(V + E)', space: 'O(V)', semantic: 'node exploration', desc: 'Traverses or searches tree or graph data structures by exploring all neighbor nodes at the present depth.', insight: 'Explores "waves" layer by layer; finds shortest path in unweighted graphs.', use: 'Shortest path (unweighted), social networks.', avoid: 'Deep trees with many branches.' },
+  18: { title: 'DFS', cat: 'GRAPH', time: 'O(V + E)', space: 'O(V)', semantic: 'node exploration', desc: 'Traverses or searches tree or graph data structures by exploring as far as possible along each branch before backtracking.', insight: 'Goes deep before wide; uses a stack (explicit or call stack).', use: 'Topological sort, cycle detection, pathfinding.', avoid: 'Very deep or infinite search spaces.' },
+  19: { title: 'Min-Heap', cat: 'HEAP', time: 'O(n log n)', space: 'O(n)', semantic: 'sift up/down', desc: 'A complete binary tree where each node is smaller than or equal to its children.', insight: 'Always gives O(1) access to the minimum element.', use: 'Priority queues, scheduling.', avoid: 'Searching for arbitrary elements.' },
+  20: { title: 'Fibonacci DP', cat: 'DP', time: 'O(n)', space: 'O(n)', semantic: 'subproblem calc', desc: 'Calculates Fibonacci numbers using Dynamic Programming to avoid redundant computations.', insight: 'Trades space for time by storing previous results.', use: 'Calculating nth Fibonacci efficiently.', avoid: 'Recursive approach (O(2^n)).' },
+  21: { title: 'LCS', cat: 'DP', time: 'O(mn)', space: 'O(mn)', semantic: 'table cell fill', desc: 'Finds the longest subsequence common to all sequences in a set of sequences.', insight: 'Classic 2D DP; builds solution from optimal subproblems.', use: 'Diff tools, bioinformatics (DNA matching).', avoid: 'Very large strings (O(mn) space complexity).' },
+  22: { title: 'Hash Table', cat: 'HASH', time: 'O(1) avg', space: 'O(n)', semantic: 'bucket lookup', desc: 'Data structure that implements an associative array abstract data type, a structure that can map keys to values.', insight: 'Uses a hash function to map keys to indices.', use: 'Database indexing, sets, caches.', avoid: 'When ordered data is required.' },
+  23: { title: 'Dijkstra', cat: 'GRAPH', time: 'O(E log V)', space: 'O(V)', semantic: 'node relaxation', desc: 'Algorithm for finding the shortest paths between nodes in a graph.', insight: 'Greedily picks the nearest unvisited node; relies on non-negative weights.', use: 'GPS routing, network routing.', avoid: 'Negative edge weights (use Bellman-Ford).' },
 };
 
 const INPUT_CONFIG = {
   sort:   { label: 'Array (comma-separated)', hint: 'Numbers to sort, e.g. 64, 34, 25, 12', placeholder: '64, 34, 25...' },
-  search: { label: 'Sorted Array', hint: 'Array will be pre-sorted for Binary/Jump search', placeholder: '10, 20, 30, 40...' },
+  search: { label: 'Sorted Array', hint: '⚠️ Warning: Array must be sorted for Binary/Jump search', placeholder: '10, 20, 30, 40...' },
   ds:     { label: 'Input Data', hint: 'Values to populate the structure', placeholder: '1, 2, 3, 4, 5...' },
   graph:  { label: 'Edge Pairs (u,v)', hint: 'Enter pairs, e.g. 1,2, 2,3, 3,1', placeholder: '1,2, 2,3, 3,4...' },
-  dijkstra: { label: 'Edge Triplets (u,w,v)', hint: 'Source, Weight, Destination triplets', placeholder: '1,4,2, 1,2,3...' },
+  dijkstra: { label: 'Edge Triplets (u,w,v)', hint: 'Source, Weight, Destination triplets (u w v)', placeholder: '0 4 1, 0 2 2, 1 5 3...' },
   dp:     { label: 'Target Number', hint: 'Single integer for calculation', placeholder: '10' }
 };
+
+const $inputWarning = document.getElementById('input-warning');
+
+function validateInputLive() {
+  if (!$inputWarning || !SEARCH_ALGOS.has(selectedAlgo) || selectedAlgo === 9) { // 9 is Linear Search
+    $inputWarning.classList.remove('visible');
+    return;
+  }
+  
+  const arr = parseArray();
+  if (arr.length < 2) {
+    $inputWarning.classList.remove('visible');
+    return;
+  }
+
+  const isSorted = arr.every((v, i) => i === 0 || v >= arr[i - 1]);
+  if (!isSorted) {
+    $inputWarning.textContent = `⚠️ Array is not sorted — ${AlgoEngine.NAMES[selectedAlgo]} requires sorted input.`;
+    $inputWarning.classList.add('visible');
+  } else {
+    $inputWarning.classList.remove('visible');
+  }
+}
+
+$arrayInput.addEventListener('input', validateInputLive);
 
 function updateInputContext(algoId) {
   const $label = document.querySelector('label[for="array-input"]');
@@ -2465,6 +2678,8 @@ function updateInputContext(algoId) {
   if ($label) $label.textContent = cfg.label;
   if ($hint)  $hint.textContent  = cfg.hint;
   if ($input) $input.placeholder = cfg.placeholder;
+  
+  validateInputLive();
 }
 
 const $codeTitle = document.getElementById('code-title');
@@ -2711,26 +2926,43 @@ document.querySelectorAll('.algo-btn').forEach(btn => {
   });
 });
 
-// ── Info Modal Logic ──
+function openInfoModal(algoId) {
+  const info = ALGO_INFO[algoId];
+  if (!info) return;
+
+  const $modal = document.getElementById('info-modal');
+  if (!$modal) return;
+
+  document.getElementById('info-title').textContent = info.title;
+  document.getElementById('info-cat').textContent = info.cat;
+  document.getElementById('info-cat').className = 'algo-cat-badge ' + (CAT_CLASS[info.cat.toLowerCase()] || 'cat-sort');
+  document.getElementById('info-desc').textContent = info.desc;
+  document.getElementById('info-time').textContent = info.time;
+  document.getElementById('info-space').textContent = info.space;
+  
+  // New detail fields
+  document.getElementById('info-insight').textContent = info.insight || '—';
+  document.getElementById('info-use').textContent     = info.use || '—';
+  document.getElementById('info-avoid').textContent   = info.avoid || '—';
+
+  $modal.classList.add('visible');
+}
+
+// ── Info Modal Initializer ──
 (function initInfoModal() {
   const $modal = document.getElementById('info-modal');
   const $trigger = document.getElementById('info-trigger');
   const $close = document.getElementById('info-close');
 
-  if (!$modal || !$trigger || !$close) return;
+  if (!$modal || !$close) return;
 
-  $trigger.addEventListener('click', () => {
-    const info = ALGO_INFO[selectedAlgo];
-    if (!info) return;
+  $trigger?.addEventListener('click', () => openInfoModal(selectedAlgo));
 
-    document.getElementById('info-title').textContent = info.title;
-    document.getElementById('info-cat').textContent = info.cat;
-    document.getElementById('info-cat').className = 'algo-cat-badge ' + (CAT_CLASS[info.cat.toLowerCase()] || 'cat-sort');
-    document.getElementById('info-desc').textContent = info.desc;
-    document.getElementById('info-time').textContent = info.time;
-    document.getElementById('info-space').textContent = info.space;
-
-    $modal.classList.add('visible');
+  document.querySelectorAll('.algo-info-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openInfoModal(parseInt(btn.dataset.algo));
+    });
   });
 
   $close.addEventListener('click', () => $modal.classList.remove('visible'));
@@ -3096,20 +3328,10 @@ function renderStep(idx) {
   const pct = steps.length > 1 ? (idx / (steps.length - 1)) * 100 : 100;
   $progressFill.style.width = pct + '%';
   
-  const phaseMap = {
-    compare: '(Comparison)',
-    swap:    '(Swap)',
-    insert:  '(Insert)',
-    delete:  '(Delete)',
-    pivot:   '(Pivot)',
-    merge:   '(Merge)',
-    visit:   '(Visit)',
-    dp:      '(DP State)',
-    found:   '(Found!)',
-    done:    '(Complete)'
-  };
-  const phaseLabel = phaseMap[s.phase] || '';
-  $curStep.innerHTML = `${idx + 1} <span style="font-size:0.6rem;opacity:0.7;margin-left:4px">${phaseLabel}</span>`;
+  const info = ALGO_INFO[selectedAlgo];
+  const semantic = info?.semantic ? `← ${info.semantic}` : '';
+  
+  $curStep.innerHTML = `${idx + 1} <span style="font-size:0.6rem;opacity:0.7;margin-left:4px">${semantic}</span>`;
   
   const progressBar = $progressFill.closest('[role="progressbar"]');
   if (progressBar) {
@@ -4134,32 +4356,47 @@ function updateHistoryBadge() {
 
 function initPreview() {
   if (initPreview._called) return;
+  
+  // Ensure DOM elements are available before proceeding
+  if (typeof $vizContent === 'undefined' || !$vizContent || !$barChart || !window.AlgoEngine) {
+    console.warn("[UI] Preview delayed: DOM or Engine not ready.");
+    setTimeout(initPreview, 100);
+    return;
+  }
+  
   initPreview._called = true;
-  if (!window.AlgoEngine) return;
+  
   const arr = [64, 34, 25, 12, 22, 11, 90];
-  maxVal = Math.max(...arr);
-  $emptyState.style.display = 'none';
-  $vizContent.style.display = 'flex';
-  $curAlgo.textContent = AlgoEngine.NAMES[0];
-  $totSteps.textContent = '—';
-  $curStep.textContent  = '0';
-  $mSize.textContent = arr.length;
-  $mSize.classList.add('populated');
-  $barChart.innerHTML = '';
-    const chartH = barChartH;
+  const algoId = 0; // Bubble Sort
+  
+  try {
+    steps = AlgoEngine.run(algoId, arr);
+    currentStep = 1; 
+    maxVal = Math.max(...arr);
 
-  arr.forEach(val => {
-    const wrap = document.createElement('div');
-    wrap.className = 'bar-wrap';
-    const bar = document.createElement('div');
-    bar.className = 'bar';
-    bar.style.height = Math.floor((val / maxVal) * chartH) + 'px';
-    const label = document.createElement('div');
-    label.className = 'bar-val';
-    label.textContent = val;
-    wrap.appendChild(bar); wrap.appendChild(label);
-    $barChart.appendChild(wrap);
-  });
+    $emptyState.style.display = 'none';
+    $vizContent.style.display = 'flex';
+    
+    // UI state sync
+    $curAlgo.textContent = AlgoEngine.NAMES[algoId];
+    $totSteps.textContent = steps.length;
+    $curStep.textContent  = '1';
+    
+    // Metric stats
+    $mSteps.textContent = steps.length;
+    $mCmps.textContent  = steps.filter(s => s.phase === 'compare').length;
+    $mSwaps.textContent = steps.filter(s => s.phase === 'swap').length;
+    $mSize.textContent  = arr.length;
+    $mSize.classList.add('populated');
+
+    // Render first step
+    renderStep(0);
+    setControls(true);
+    
+    console.log("[UI] Preview initialized with Bubble Sort.");
+  } catch (err) {
+    console.error("[UI] Preview initialization failed:", err);
+  }
 }
 </script>
 
