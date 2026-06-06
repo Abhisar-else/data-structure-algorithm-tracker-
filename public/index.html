@@ -310,7 +310,7 @@ header {
   height: 24px;
 }
 
-@media (max-width: 1024px) {
+@media (min-width: 768px) and (max-width: 1024px) {
   .menu-toggle { display: block; }
 }
 
@@ -2850,24 +2850,35 @@ const $genBtn      = document.getElementById('gen-btn');
 const $clearHistory= document.getElementById('clear-history');
 
 const $sidebarToggle = document.getElementById('sidebar-toggle');
+const $menuToggle    = document.getElementById('menu-toggle');
 const $sidebar       = document.getElementById('sidebar');
 const $sidebarScrim  = document.getElementById('sidebar-scrim');
 
 function openSidebar() {
   $sidebar.classList.add('open');
   $sidebarScrim.classList.add('visible');
-  $sidebarToggle.setAttribute('aria-expanded', 'true');
+  $sidebarToggle?.setAttribute('aria-expanded', 'true');
+  $menuToggle?.setAttribute('aria-expanded', 'true');
   $sidebar.querySelector('button, input, textarea')?.focus();
 }
 
 function closeSidebar() {
   $sidebar.classList.remove('open');
   $sidebarScrim.classList.remove('visible');
-  $sidebarToggle.setAttribute('aria-expanded', 'false');
-  $sidebarToggle.focus();
+  $sidebarToggle?.setAttribute('aria-expanded', 'false');
+  $menuToggle?.setAttribute('aria-expanded', 'false');
+  
+  if ($menuToggle && window.getComputedStyle($menuToggle).display !== 'none') {
+    $menuToggle.focus();
+  } else {
+    $sidebarToggle?.focus();
+  }
 }
 
 $sidebarToggle?.addEventListener('click', () => {
+  $sidebar.classList.contains('open') ? closeSidebar() : openSidebar();
+});
+$menuToggle?.addEventListener('click', () => {
   $sidebar.classList.contains('open') ? closeSidebar() : openSidebar();
 });
 $sidebarScrim?.addEventListener('click', closeSidebar);
