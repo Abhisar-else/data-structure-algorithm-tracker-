@@ -3894,7 +3894,6 @@ $pauseBtn.addEventListener('click', () => {
   if (!playing && !paused) return;
   paused = !paused;
   $pauseBtn.textContent = paused ? '▶ Resume' : '⏸ Pause';
-  if (!paused) tick();
 });
 
 $stepBtn.addEventListener('click', () => {

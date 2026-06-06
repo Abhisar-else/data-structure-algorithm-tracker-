@@ -2,9 +2,11 @@
  * engine.wasm-bridge.js — Production bridge for the real C++ WASM engine.
  *
  * Uses Emscripten Embind to communicate with the C++ engine.
+ * Falls back to the JavaScript simulation (engine.sim.js) if WASM is not ready.
  */
 
-window.AlgoEngine = (() => {
+(function() {
+  const simEngine = window.AlgoEngine; // Preserve the simulation engine if loaded first
   let Module = null;
   let ready  = false;
 
@@ -48,47 +50,51 @@ window.AlgoEngine = (() => {
         footerEngine.textContent = 'Engine: C++ WebAssembly';
       }
     }).catch(err => {
-      console.error('[AlgoEngine] Failed to load WASM module:', err);
+      console.warn('[AlgoEngine] WASM failed to load, using JS simulation fallback.', err);
     });
   }
 
-  function run(algoId, inputArray, extra = 0) {
-    if (!ready || !Module) return [];
-    try {
-      const jsonStr = JSON.stringify(inputArray);
-      // Embind: no underscores, handles string conversions
-      Module.run_algorithm(algoId, jsonStr, extra);
-      const stepsJson = Module.get_steps_json();
-      return JSON.parse(stepsJson);
-    } catch (err) {
-      console.error('[AlgoEngine] Error running algorithm:', err);
-      return [];
-    }
-  }
+  window.AlgoEngine = {
+    NAMES,
+    CATEGORY,
 
-  function getHistory() {
-    if (!ready || !Module) return [];
-    try {
-      // Embind returns std::string as JS string, no manual free needed
-      return JSON.parse(Module.get_history_json());
-    } catch (err) {
-      console.error('[AlgoEngine] Error fetching history:', err);
-      return [];
-    }
-  }
-
-  function clearHistory() {
-    if (!ready || !Module) return;
-    try {
-      // If C++ exports a clear method, call it. 
-      // For now, if not exported, we note it.
-      if (typeof Module.clear_history === 'function') {
-        Module.clear_history();
+    run: (algoId, inputArray, extra = 0) => {
+      if (ready && Module) {
+        try {
+          Module.run_algorithm(algoId, JSON.stringify(inputArray), extra);
+          return JSON.parse(Module.get_steps_json());
+        } catch (err) {
+          console.error('[AlgoEngine] WASM run error:', err);
+        }
       }
-    } catch (err) {
-      console.error('[AlgoEngine] Error clearing history:', err);
-    }
-  }
+      if (simEngine) return simEngine.run(algoId, inputArray, extra);
+      console.error('[AlgoEngine] No engine ready.');
+      return [];
+    },
 
-  return { run, getHistory, clearHistory, NAMES, CATEGORY };
+    getHistory: () => {
+      if (ready && Module) {
+        try {
+          return JSON.parse(Module.get_history_json());
+        } catch (err) {
+          console.error('[AlgoEngine] WASM history error:', err);
+        }
+      }
+      if (simEngine) return simEngine.getHistory();
+      return [];
+    },
+
+    clearHistory: () => {
+      if (ready && Module && typeof Module.clear_history === 'function') {
+        try {
+          Module.clear_history();
+        } catch (err) {
+          console.error('[AlgoEngine] WASM clear error:', err);
+        }
+      }
+      if (simEngine && typeof simEngine.clearHistory === 'function') {
+        simEngine.clearHistory();
+      }
+    }
+  };
 })();
