@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Algorithm Flight Recorder — Professional DSA visualizer powered by C++ and WebAssembly with SQLite-backed telemetry.">
+<meta name="description" content="Algorithm Flight Recorder — Professional DSA visualizer powered by JavaScript and SQLite with SQLite-backed telemetry.">
 <title>Algorithm Flight Recorder</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect x=%2210%22 y=%2210%22 width=%2280%22 height=%2280%22 rx=%2220%22 fill=%22%2300e5ff%22/><path d=%22M30 70 L50 30 L70 70%22 fill=%22none%22 stroke=%22%23070910%22 stroke-width=%228%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -470,13 +470,13 @@ aside.open { transform: translateX(0); }
 }
 
 /* Active/selected state — prominent ring */
-.algo-btn.active {
+.algo-btn.algo-item--active {
   border-color: var(--accent);
   color: var(--accent);
   background: var(--accent-strong);
   box-shadow: 0 0 0 1px var(--accent) inset, 0 0 12px var(--accent-glow);
 }
-.algo-btn.active.running::before {
+.algo-btn.algo-item--active.running::before {
   content: '';
   position: absolute;
   top: 5px; right: 5px;
@@ -496,7 +496,7 @@ aside.open { transform: translateX(0); }
   margin-top: 2px;
   line-height: 1;
 }
-.algo-btn.active .algo-tag { color: rgba(0,229,255,.55); }
+.algo-btn.algo-item--active .algo-tag { color: rgba(0,229,255,.55); }
 .algo-btn:hover .algo-tag { color: rgba(0,229,255,.45); }
 
 .algo-category {
@@ -1658,8 +1658,8 @@ footer {
   </div>
   <div class="header-right">
     <div class="header-status" aria-label="System status">
-      <div class="status-pill"><div class="dot live" aria-hidden="true"></div><span>ENGINE READY</span></div>
-      <div class="status-pill" id="wasm-status"><div class="dot warn" aria-hidden="true"></div><span>JS SIM</span></div>
+      <div class="status-pill"><div class="dot live" aria-hidden="true"></div><span>JS ENGINE</span></div>
+
       <div class="status-pill"><div class="dot" aria-hidden="true"></div><span>SQLite</span></div>
     </div>
     <button class="sidebar-toggle" id="sidebar-toggle"
@@ -1694,7 +1694,7 @@ footer {
       </summary>
       <div class="group-content">
         <div class="algo-grid" role="group" aria-label="Sorting algorithms">
-          <button class="algo-btn active" data-algo="0" aria-pressed="true" aria-label="Bubble Sort O(n squared)">
+          <button class="algo-btn algo-item--active" data-algo="0" aria-pressed="true" aria-label="Bubble Sort O(n squared)">
             Bubble<span class="algo-tag" aria-hidden="true">O(n²)</span>
           </button>
           <button class="algo-btn" data-algo="1" aria-pressed="false" aria-label="Selection Sort O(n squared)">
@@ -1980,11 +1980,11 @@ footer {
 
   <div class="code-stage" id="tab-code" role="tabpanel" aria-labelledby="tab-code-trigger">
     <div class="code-panel-header">
-      <span class="code-lang-badge" aria-hidden="true">C++</span>
-      <span class="code-title" id="code-title">BubbleSort::sort()</span>
+      <span class="code-lang-badge" aria-hidden="true">JS</span>
+      <span class="code-title" id="code-title">bubbleSort(arr)</span>
       <span class="code-note" id="code-note" aria-live="polite">Run an algorithm to activate</span>
     </div>
-    <div id="monaco-container" aria-label="C++ source code viewer" role="region"></div>
+    <div id="monaco-container" aria-label="JS source code viewer" role="region"></div>
   </div>
 
   <div class="history-stage" id="tab-history" role="tabpanel" aria-labelledby="tab-history-trigger">
@@ -2039,7 +2039,7 @@ footer {
     <strong>AlgoRecorder v3.0</strong> — High-Performance DSA Visualization
   </div>
   <div class="footer-right">
-    <span id="footer-engine"><span class="dot live"></span> Engine: C++ WebAssembly</span>
+    <span id="footer-engine"><span class="dot live"></span> Engine: JavaScript + SQLite</span>
     <span>SQLite Telemetry Active</span>
   </div>
 </footer>
@@ -2047,8 +2047,8 @@ footer {
 </div>
 
 <script src="engine.sim.js"></script>
-<script src="engine.js"></script>
-<script src="engine.wasm-bridge.js"></script>
+
+
 
 <script>
 /**
@@ -2076,14 +2076,14 @@ footer {
 
 const SOURCE_MAP = {
   0: {
-    title: 'BubbleSort::sort()',
+    title: 'bubbleSort(arr)',
     lines: [
-      'void BubbleSort::sort(vector<int>& arr) {',
-      '  for (int i = 0; i < n-1; i++) {',
-      '    bool swapped = false;',
-      '    for (int j = 0; j < n-i-1; j++) {',
+      'function bubbleSort(arr) {',
+      '  for (let i = 0; i < arr.length - 1; i++) {',
+      '    let swapped = false;',
+      '    for (let j = 0; j < arr.length - i - 1; j++) {',
       '      if (arr[j] > arr[j+1]) {',
-      '        swap(arr[j], arr[j+1]);     // ← swap fires here',
+      '        swap(arr, j, j+1);          // ← swap fires here',
       '        swapped = true;',
       '      }',
       '    }',
@@ -2538,7 +2538,7 @@ function initMonaco() {
       document.getElementById('monaco-container'),
       {
         value:                sourceToText(SOURCE_MAP[0]),
-        language:             'cpp',
+        language:             'javascript',
         theme:                'flight-recorder',
         readOnly:             true,
         minimap:              { enabled: false },
@@ -2671,12 +2671,13 @@ const CAT_CLASS     = {sort:'cat-sort',search:'cat-search',ds:'cat-ds',
 document.querySelectorAll('.algo-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.algo-btn').forEach(b => {
-      b.classList.remove('active');
+      b.classList.remove('algo-item--active');
       b.setAttribute('aria-pressed', 'false');
     });
-    btn.classList.add('active');
+    btn.classList.add('algo-item--active');
     btn.setAttribute('aria-pressed', 'true');
     selectedAlgo = parseInt(btn.dataset.algo);
+    if ($curAlgo) $curAlgo.textContent = AlgoEngine.NAMES[selectedAlgo] ?? '—';
 
     updateInputContext(selectedAlgo);
 
@@ -2918,7 +2919,7 @@ $runBtn.addEventListener('click', () => {
   $runBtn.disabled = true;
   $runBtn.textContent = '⏸ Running…';
 
-  document.querySelector('.algo-btn.active')?.classList.add('running');
+  document.querySelector('.algo-btn.algo-item--active')?.classList.add('running');
 
   if (window.innerWidth < 768) closeSidebar();
 
@@ -4137,29 +4138,49 @@ function initPreview() {
   initPreview._called = true;
   if (!window.AlgoEngine) return;
   const arr = [64, 34, 25, 12, 22, 11, 90];
+  $arrayInput.value = arr.join(', ');
+  selectedAlgo = 0;
   maxVal = Math.max(...arr);
+
+  steps = AlgoEngine.run(0, arr);
+  currentStep = 0;
+
   $emptyState.style.display = 'none';
   $vizContent.style.display = 'flex';
-  $curAlgo.textContent = AlgoEngine.NAMES[0];
-  $totSteps.textContent = '—';
-  $curStep.textContent  = '0';
+
+  if ($curAlgo) $curAlgo.textContent = AlgoEngine.NAMES[0] || '—';
+  if ($totSteps) $totSteps.textContent = steps ? steps.length : '—';
+  if ($curStep) $curStep.textContent = '0';
   $mSize.textContent = arr.length;
   $mSize.classList.add('populated');
-  $barChart.innerHTML = '';
-    const chartH = barChartH;
 
-  arr.forEach(val => {
-    const wrap = document.createElement('div');
-    wrap.className = 'bar-wrap';
-    const bar = document.createElement('div');
-    bar.className = 'bar';
-    bar.style.height = Math.floor((val / maxVal) * chartH) + 'px';
-    const label = document.createElement('div');
-    label.className = 'bar-val';
-    label.textContent = val;
-    wrap.appendChild(bar); wrap.appendChild(label);
-    $barChart.appendChild(wrap);
-  });
+  playing = false;
+  paused = true;
+  setControls(true);
+  $pauseBtn.textContent = '▶ Resume';
+
+  if (steps && steps.length > 0) {
+    renderStep(0);
+  } else {
+    $barChart.innerHTML = '';
+    const chartH = barChartH;
+    arr.forEach(val => {
+      const wrap = document.createElement('div');
+      wrap.className = 'bar-wrap';
+      const bar = document.createElement('div');
+      bar.className = 'bar';
+      bar.style.height = Math.floor((val / maxVal) * chartH) + 'px';
+      const label = document.createElement('div');
+      label.className = 'bar-val';
+      label.textContent = val;
+      wrap.appendChild(bar); wrap.appendChild(label);
+      $barChart.appendChild(wrap);
+    });
+  }
+
+  if (typeof injectSource === 'function') {
+    injectSource(0);
+  }
 }
 </script>
 
