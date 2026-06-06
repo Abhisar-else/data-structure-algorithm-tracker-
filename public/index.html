@@ -344,7 +344,7 @@ aside.open { transform: translateX(0); }
 }
 .sidebar-scrim.visible { opacity: 1; pointer-events: auto; }
 
-@media (min-width: 768px) {
+@media (min-width: 1025px) {
   aside {
     position: static;
     transform: none;
@@ -353,6 +353,10 @@ aside.open { transform: translateX(0); }
     height: 100%;
   }
   .sidebar-scrim { display: none; }
+}
+
+@media (max-width: 768px) {
+  aside { width: 100%; }
 }
 
 .panel-section {
@@ -1726,41 +1730,8 @@ footer {
 }
 
 @media (max-width: 1024px) {
-  #sidebar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    width: 300px;
-    z-index: 2000;
-    transform: translateX(-100%);
-    transition: transform 0.25s ease-in-out;
-    background: var(--surface-0);
-    box-shadow: 10px 0 30px rgba(0,0,0,0.3);
-  }
-  
-  #sidebar.open {
-    transform: translateX(0);
-  }
-  
   .main-layout {
     grid-template-columns: 1fr; /* Sidebar removed from grid */
-  }
-}
-
-@media (max-width: 768px) {
-  .viz-container {
-    flex-direction: column;
-    height: auto;
-  }
-  
-  .viz-panel, .control-panel {
-    width: 100%;
-    height: auto;
-  }
-  
-  #sidebar {
-    width: 100%; /* Full screen overlay */
   }
 }
 </style>
@@ -2893,37 +2864,32 @@ const $menuToggle    = document.getElementById('menu-toggle');
 const $sidebar       = document.getElementById('sidebar');
 const $sidebarScrim  = document.getElementById('sidebar-scrim');
 
-function openSidebar() {
-  $sidebar.classList.add('open');
-  $sidebarScrim.classList.add('visible');
-  $sidebarToggle?.setAttribute('aria-expanded', 'true');
-  $menuToggle?.setAttribute('aria-expanded', 'true');
-  $sidebar.querySelector('button, input, textarea')?.focus();
-}
-
-function closeSidebar() {
-  $sidebar.classList.remove('open');
-  $sidebarScrim.classList.remove('visible');
-  $sidebarToggle?.setAttribute('aria-expanded', 'false');
-  $menuToggle?.setAttribute('aria-expanded', 'false');
+function toggleSidebar() {
+  const isOpen = $sidebar.classList.toggle('open');
+  $sidebarScrim.classList.toggle('visible', isOpen);
   
-  if ($menuToggle && window.getComputedStyle($menuToggle).display !== 'none') {
-    $menuToggle.focus();
+  // Sync accessibility attributes
+  $menuToggle?.setAttribute('aria-expanded', isOpen);
+  $sidebarToggle?.setAttribute('aria-expanded', isOpen);
+  
+  if (isOpen) {
+    $sidebar.querySelector('button, input, textarea')?.focus();
   } else {
-    $sidebarToggle?.focus();
+    // Return focus to whichever toggle is currently visible
+    if ($menuToggle && window.getComputedStyle($menuToggle).display !== 'none') {
+      $menuToggle.focus();
+    } else {
+      $sidebarToggle?.focus();
+    }
   }
 }
 
-$sidebarToggle?.addEventListener('click', () => {
-  $sidebar.classList.contains('open') ? closeSidebar() : openSidebar();
-});
-$menuToggle?.addEventListener('click', () => {
-  $sidebar.classList.contains('open') ? closeSidebar() : openSidebar();
-});
-$sidebarScrim?.addEventListener('click', closeSidebar);
+$menuToggle?.addEventListener('click', toggleSidebar);
+$sidebarToggle?.addEventListener('click', toggleSidebar);
+$sidebarScrim?.addEventListener('click', toggleSidebar);
 
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape' && $sidebar.classList.contains('open')) closeSidebar();
+  if (e.key === 'Escape' && $sidebar.classList.contains('open')) toggleSidebar();
 });
 
 const $currentCat   = document.getElementById('current-cat');
@@ -2972,7 +2938,7 @@ document.querySelectorAll('.algo-btn').forEach(btn => {
       $codeNote.classList.remove('active');
     }
 
-    if (window.innerWidth < 768) closeSidebar();
+    if (window.innerWidth < 768 && $sidebar.classList.contains('open')) toggleSidebar();
   });
 });
 
