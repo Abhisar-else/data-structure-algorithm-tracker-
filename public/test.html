@@ -76,7 +76,8 @@
     <p>Run comprehensive tests on the algorithm engine. Results will appear below.</p>
     
     <div class="controls">
-        <button onclick="runTests()">▶ Run All Tests</button>
+        <button onclick="runTests()">▶ Run Engine Tests</button>
+        <button onclick="runTDDTests()" style="background: #a855f7;">🧪 Run TDD Unit Tests</button>
         <button onclick="clearConsole()">🗑 Clear Console</button>
         <button onclick="exportResults()">💾 Export Results (CSV)</button>
         <button onclick="goBack()">← Back to Visualizer</button>
@@ -87,6 +88,7 @@
     <!-- Load engine and tests -->
     <script src="engine.sim.js"></script>
     <script src="qa_stress_test.js"></script>
+    <script src="tdd_test_runner.js"></script>
     <script>
         const consoleEl = document.getElementById('console');
 
@@ -102,6 +104,15 @@
         function clearConsole() {
             consoleEl.innerHTML = '';
             log('Console cleared.', 'info');
+        }
+
+        function runTDDTests() {
+            clearConsole();
+            log('🧪 Starting TDD Unit Tests...', 'info');
+            const result = TDDTests.run();
+            log(`\n✓ TDD completed`, 'success');
+            log(`Passed: ${result.passed}`, 'success');
+            log(`Failed: ${result.failed}`, result.failed > 0 ? 'error' : 'success');
         }
 
         function runTests() {

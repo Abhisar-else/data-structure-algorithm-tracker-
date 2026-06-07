@@ -24,6 +24,7 @@ graphify-out/
 .DS_Store
 Thumbs.db
 
+shadcn-ui/
 # Logs
 *.log
 npm-debug.log*

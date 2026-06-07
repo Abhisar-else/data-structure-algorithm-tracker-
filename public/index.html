@@ -10,6 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<script defer src="/_vercel/insights/script.js"></script>
 <style>
 /* ── DESIGN TOKENS ── */
 :root {
@@ -2186,6 +2187,7 @@ footer {
       <h2>SQLite Run History</h2>
       <div class="history-header-actions">
         <button class="compare-trigger-btn" id="compare-btn">📊 Compare Selected</button>
+        <button class="pb-btn" id="download-history-json" style="padding: 0 var(--sp-3); min-height: 32px;">💾 Download JSON</button>
         <button class="clear-btn" id="clear-history" aria-label="Clear all history entries">Clear Log</button>
       </div>
     </div>
@@ -2261,18 +2263,6 @@ footer {
 <script src="engine.wasm-bridge.js"></script>
 
 <script>
-/**
- * Global Engine Initializer
- * This ensures the UI only starts once both the DOM and the Engine are ready.
- */
-(function initializeApp() {
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => setTimeout(initPreview, 150));
-  } else {
-    setTimeout(initPreview, 150);
-  }
-})();
-
 const SOURCE_MAP = {
   0: {
     title: 'BubbleSort::sort()',
@@ -2672,8 +2662,6 @@ function validateInputLive() {
   }
 }
 
-$arrayInput.addEventListener('input', validateInputLive);
-
 function updateInputContext(algoId) {
   const $label = document.querySelector('label[for="array-input"]');
   const $hint  = document.getElementById('array-hint');
@@ -2837,6 +2825,8 @@ const _layoutCache = new Map();
 
 const $arrayInput  = document.getElementById('array-input');
 const $targetInput = document.getElementById('target-input');
+
+$arrayInput?.addEventListener('input', validateInputLive);
 const $targetRow   = document.getElementById('target-row');
 const $runBtn      = document.getElementById('run-btn');
 const $pauseBtn    = document.getElementById('pb-pause');
@@ -3029,6 +3019,11 @@ function openInfoModal(algoId) {
     if (e.key === 'Escape' && $modal.classList.contains('visible')) hide();
   });
 })();
+
+function serializeHistory(data) {
+  if (!data) return '[]';
+  return JSON.stringify(data, null, 2);
+}
 
 const $tabs = document.querySelectorAll('.tab');
 
@@ -4308,6 +4303,23 @@ $clearHistory.addEventListener('click', () => {
   renderHistory();
 });
 
+document.getElementById('download-history-json')?.addEventListener('click', () => {
+  const history = AlgoEngine.getHistory();
+  if (!history.length) {
+    showToast('⚠️ No history to download', 'warning');
+    return;
+  }
+  const json = serializeHistory(history);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `algo-flight-history-${new Date().toISOString().split('T')[0]}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('✓ History downloaded as JSON');
+});
+
 window.addEventListener('resize', () => {
   if (steps.length && currentStep > 0) renderStep(Math.max(0, currentStep - 1));
 });
@@ -4470,6 +4482,18 @@ function initPreview() {
     console.error("[UI] Preview initialization failed:", err);
   }
 }
+
+/**
+ * Global Engine Initializer
+ * This ensures the UI only starts once both the DOM and the Engine are ready.
+ */
+(function initializeApp() {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => setTimeout(initPreview, 150));
+  } else {
+    setTimeout(initPreview, 150);
+  }
+})();
 </script>
 
 </body>
